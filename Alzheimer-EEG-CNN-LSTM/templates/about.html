@@ -1,0 +1,91 @@
+﻿{% extends 'base.html' %}
+{% set active_page = 'about' %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="text-center mb-5">
+        <div class="badge bg-info-subtle text-info border border-info mb-2 px-3 py-2 rounded-pill fw-semibold">
+            <i class="fa-solid fa-graduation-cap me-1"></i> Academic Research Project
+        </div>
+        <h2 class="text-white fw-bold">About the EEG Alzheimer's Detection Project</h2>
+        <p class="text-white-50">Understanding the neuroscience, deep learning architecture, and evaluation methodology.</p>
+    </div>
+
+    <!-- Section 1: Problem & Neuro-Electrophysiology -->
+    <div class="card glass-card border border-secondary rounded-4 p-4 p-md-5 mb-4 shadow">
+        <h4 class="text-info fw-bold mb-3"><i class="fa-solid fa-brain me-2"></i> 1. Problem & Clinical Motivation</h4>
+        <p class="text-white-50">
+            Alzheimer's Disease (AD) is a progressive neurodegenerative condition characterized by cortical atrophy and synaptic loss. Scalp Electroencephalography (EEG) records the summation of postsynaptic potentials from millions of pyramidal neurons, providing real-time electrophysiological insights:
+        </p>
+        <div class="row g-3">
+            <div class="col-md-4">
+                <div class="p-3 rounded bg-dark border border-danger">
+                    <h6 class="text-danger fw-bold">AD (Alzheimer's Disease)</h6>
+                    <p class="small text-white-50 mb-0">Pathological "EEG slowing" characterized by excessive low-frequency Delta (0.5–4 Hz) and Theta (4–8 Hz) spectral power and severe reduction in dominant posterior Alpha waves.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="p-3 rounded bg-dark border border-success">
+                    <h6 class="text-success fw-bold">HC (Healthy Control)</h6>
+                    <p class="small text-white-50 mb-0">Normal cognitive aging with strong, synchronized posterior Alpha rhythm (8–13 Hz) during resting eyes-closed recordings.</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="p-3 rounded bg-dark border border-warning">
+                    <h6 class="text-warning fw-bold">FTD (Frontotemporal Dementia)</h6>
+                    <p class="small text-white-50 mb-0">Focal neurodegeneration targeting anterior frontal and temporal electrodes (Fp1, Fp2, F3, F4, Fz, T3, T4) with localized spectral frequency shifts.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 2: Hybrid CNN-LSTM Neural Network Architecture -->
+    <div class="card glass-card border border-secondary rounded-4 p-4 p-md-5 mb-4 shadow">
+        <h4 class="text-info fw-bold mb-3"><i class="fa-solid fa-network-wired me-2"></i> 2. Why Hybrid CNN-LSTM?</h4>
+        <p class="text-white-50">
+            Standard classifiers (like standalone SVM or KNN) require manual feature engineering and struggle with raw multichannel temporal dependencies. Our Hybrid architecture combines the strengths of both paradigms:
+        </p>
+        <div class="row g-4">
+            <div class="col-md-6">
+                <div class="p-3 rounded bg-dark border border-info h-100">
+                    <h6 class="text-info fw-bold"><i class="fa-solid fa-microchip me-1"></i> 1D CNN Spatial/Morphological Extractor</h6>
+                    <p class="small text-white-50 mb-0">
+                        Hierarchical 1D convolutions with multi-scale receptive fields (filters=64, 128; kernels=7, 5, 3) scan across the 19 channels simultaneously, learning spatial wave morphologies and spectral peak features.
+                    </p>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="p-3 rounded bg-dark border border-primary h-100">
+                    <h6 class="text-primary fw-bold"><i class="fa-solid fa-clock-rotate-left me-1"></i> Bidirectional LSTM Sequence Learner</h6>
+                    <p class="small text-white-50 mb-0">
+                        Bidirectional recurrent units process the extracted spatial feature maps across time in both forward and backward directions, capturing long-range temporal rhythms and state transitions.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 3: Evaluation Metrics Guide -->
+    <div class="card glass-card border border-secondary rounded-4 p-4 p-md-5 mb-4 shadow">
+        <h4 class="text-info fw-bold mb-3"><i class="fa-solid fa-calculator me-2"></i> 3. Evaluation Metrics Explained</h4>
+        <div class="row g-3 text-white-50 small">
+            <div class="col-md-6">
+                <strong class="text-white d-block mb-1">Accuracy:</strong>
+                The ratio of correctly predicted EEG windows over the total evaluated windows across all diagnostic classes.
+            </div>
+            <div class="col-md-6">
+                <strong class="text-white d-block mb-1">Macro Precision:</strong>
+                The average percentage of predicted cases for each class that were truly positive, penalizing false alarms.
+            </div>
+            <div class="col-md-6">
+                <strong class="text-white d-block mb-1">Macro Recall:</strong>
+                The average sensitivity across all classes, ensuring that true Alzheimer's cases are not missed.
+            </div>
+            <div class="col-md-6">
+                <strong class="text-white d-block mb-1">Macro F1-Score:</strong>
+                The harmonic mean of Precision and Recall, providing a balanced single metric under class imbalance.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

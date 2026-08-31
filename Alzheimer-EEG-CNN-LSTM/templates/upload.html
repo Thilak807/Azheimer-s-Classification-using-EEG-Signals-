@@ -1,0 +1,509 @@
+{% extends 'base.html' %}
+{% set active_page = 'upload' %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+
+            <!-- ========================================== -->
+            <!-- 1. UPLOAD & CONFIGURATION CARD             -->
+            <!-- ========================================== -->
+            <div id="uploadSection" class="card glass-card border border-secondary rounded-4 shadow-lg p-4 p-md-5">
+                <div class="text-center mb-4">
+                    <div class="badge bg-primary-subtle text-primary border border-primary mb-2 px-3 py-2 rounded-pill fw-semibold">
+                        <i class="fa-solid fa-wave-square me-1"></i> Diagnostic Inference
+                    </div>
+                    <h2 class="text-white fw-bold">Upload EEG Recording</h2>
+                    <p class="text-white-50">Upload a patient's resting-state EEG recording (.set, .csv, .tsv, .mat) for automated clinical classification.</p>
+                </div>
+                
+                <form id="uploadForm" enctype="multipart/form-data">
+                    <!-- Model Selection -->
+                    <div class="mb-4">
+                        <label class="form-label text-white fw-semibold">
+                            <i class="fa-solid fa-sliders text-info me-2"></i> Select Trained Deep Learning Model:
+                        </label>
+                        <select name="model_name" class="form-select bg-dark text-white border-secondary py-2 rounded-3" id="modelSelect">
+                            {% for key, meta in model_options.items() %}
+                                <option value="{{ key }}" {% if key == default_model %}selected{% endif %}>
+                                    {{ meta.name }} ({{ meta.split }} — Benchmark Acc: {{ meta.accuracy }})
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- File Upload Dropzone -->
+                    <div class="upload-dropzone p-5 text-center rounded-4 border-2 border-dashed mb-4" id="dropZone">
+                        <div class="mb-3">
+                            <i class="fa-solid fa-cloud-arrow-up fa-3x text-info"></i>
+                        </div>
+                        <h5 class="text-white fw-bold mb-1">Drag and drop your EEG file here</h5>
+                        <p class="text-white-50 small mb-3">Supported formats: <strong>.set</strong>, <strong>.csv</strong>, <strong>.tsv</strong>, <strong>.mat</strong> (Max: 100 MB)</p>
+                        
+                        <label class="btn btn-outline-info rounded-pill px-4 shadow-sm">
+                            <i class="fa-solid fa-folder-open me-2"></i> Browse Files
+                            <input type="file" name="eeg_file" id="fileInput" class="d-none" accept=".set,.csv,.tsv,.txt,.mat">
+                        </label>
+                        
+                        <div id="fileDetails" class="mt-3 text-info fw-semibold d-none p-2 rounded-3 bg-dark border border-info-subtle"></div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="text-center">
+                        <button type="submit" class="btn btn-primary btn-lg w-100 py-3 rounded-pill fw-bold shadow-lg" id="analyzeBtn">
+                            <i class="fa-solid fa-brain me-2"></i> Analyze EEG
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- ========================================== -->
+            <!-- 2. HIGH-TECH MEDICAL AI SCANNING OVERLAY   -->
+            <!-- ========================================== -->
+            <div id="scanningSection" class="scanner-overlay p-4 p-md-5 text-center d-none">
+                <!-- Holographic Radar Pulse Core -->
+                <div class="scanner-core">
+                    <div class="scanner-ring scanner-ring-1"></div>
+                    <div class="scanner-ring scanner-ring-2"></div>
+                    <div class="scanner-ring scanner-ring-3"></div>
+                    <i class="fa-solid fa-brain scanner-icon"></i>
+                </div>
+
+                <h3 class="text-white fw-bold mb-1">AI Neural Diagnostic Engine Active</h3>
+                <p class="text-info small mb-4" id="scanSubStatus">Acquiring electrophysiological signals & executing deep neural pipeline...</p>
+
+                <!-- Live Oscilloscope Waveform Canvas -->
+                <div class="oscilloscope-box mb-4">
+                    <canvas id="eegCanvas" class="oscilloscope-canvas"></canvas>
+                    <div class="scan-line"></div>
+                </div>
+
+                <!-- Step Checklist -->
+                <div class="text-start mx-auto" style="max-width: 580px;">
+                    <div class="stage-item" id="stage1">
+                        <i class="fa-solid fa-circle-notch fa-spin me-2 text-info"></i> <strong>Phase 1:</strong> Signal Parsing & Channel Alignment (19-Channel 10–20 System)
+                    </div>
+                    <div class="stage-item" id="stage2">
+                        <i class="fa-regular fa-circle me-2"></i> <strong>Phase 2:</strong> 0.5–45 Hz Bandpass & 50 Hz Notch Filtering
+                    </div>
+                    <div class="stage-item" id="stage3">
+                        <i class="fa-regular fa-circle me-2"></i> <strong>Phase 3:</strong> Z-Score Standardization & Resampling (128 Hz)
+                    </div>
+                    <div class="stage-item" id="stage4">
+                        <i class="fa-regular fa-circle me-2"></i> <strong>Phase 4:</strong> 5.0s Spatial-Temporal Segmentation (640 Timesteps x 19 Channels)
+                    </div>
+                    <div class="stage-item" id="stage5">
+                        <i class="fa-regular fa-circle me-2"></i> <strong>Phase 5:</strong> Hybrid CNN-LSTM Neural Network Multi-Class Inference
+                    </div>
+                    <div class="stage-item" id="stage6">
+                        <i class="fa-regular fa-circle me-2"></i> <strong>Phase 6:</strong> Synthesizing Diagnostic Probability Report
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========================================== -->
+            <!-- 3. DYNAMIC MEDICAL RESULT DASHBOARD        -->
+            <!-- ========================================== -->
+            <div id="resultSection" class="result-card-container d-none">
+                <div class="card glass-card border border-secondary rounded-4 shadow-lg p-4 p-md-5 mb-4">
+                    
+                    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 pb-3 border-bottom border-secondary">
+                        <div>
+                            <span class="badge bg-secondary-subtle text-light border border-secondary px-3 py-2 rounded-pill">
+                                <i class="fa-solid fa-microchip me-1 text-info"></i> <span id="resModelName">CNN-LSTM Model</span>
+                            </span>
+                        </div>
+                        <div class="mt-2 mt-sm-0">
+                            <span class="text-white-50 small"><i class="fa-regular fa-file-lines me-1"></i> File: <strong class="text-white" id="resFileName">-</strong></span>
+                        </div>
+                    </div>
+
+                    <!-- Diagnosis Hero Card with Circular Radial Gauge -->
+                    <div id="diagnosisBanner" class="p-4 p-md-5 rounded-4 mb-4 text-center">
+                        <small class="text-white-50 text-uppercase fw-bold letter-spacing-1 d-block mb-1">Automated Model Diagnostic Classification</small>
+                        <h1 class="display-5 fw-bold my-2" id="resDiagnosisTitle">
+                            <i class="fa-solid fa-brain me-2"></i> <span id="resDiagnosisName">-</span>
+                        </h1>
+                        <p class="text-white-50 mb-4" id="resDiagnosisDesc">-</p>
+
+                        <!-- Radial Gauge Meter -->
+                        <div class="radial-progress-wrapper">
+                            <svg class="radial-progress-svg" viewBox="0 0 160 160">
+                                <circle class="radial-bg" cx="80" cy="80" r="70"></circle>
+                                <circle class="radial-fill" id="radialProgressCircle" cx="80" cy="80" r="70"></circle>
+                            </svg>
+                            <div class="radial-center-text">
+                                <div class="fs-2 fw-bold text-white" id="confidenceValue">0%</div>
+                                <small class="text-white-50">Confidence</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Multi-Class Diagnostic Probabilities -->
+                    <div class="mb-4">
+                        <h5 class="text-white fw-bold mb-3"><i class="fa-solid fa-chart-pie text-info me-2"></i> Multi-Class Diagnostic Probabilities:</h5>
+                        <div class="row g-3">
+                            <!-- AD -->
+                            <div class="col-md-4">
+                                <div class="p-3 rounded-3 bg-dark border border-secondary">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span class="text-danger fw-bold"><i class="fa-solid fa-circle text-danger me-1"></i> Alzheimer's (AD)</span>
+                                        <strong class="text-white" id="probAD">0%</strong>
+                                    </div>
+                                    <div class="progress" style="height: 10px; background: rgba(255,255,255,0.08);">
+                                        <div class="progress-bar bg-danger prob-bar-fill" id="probBarAD" style="width: 0%;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- HC -->
+                            <div class="col-md-4">
+                                <div class="p-3 rounded-3 bg-dark border border-secondary">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span class="text-success fw-bold"><i class="fa-solid fa-circle text-success me-1"></i> Healthy (HC)</span>
+                                        <strong class="text-white" id="probHC">0%</strong>
+                                    </div>
+                                    <div class="progress" style="height: 10px; background: rgba(255,255,255,0.08);">
+                                        <div class="progress-bar bg-success prob-bar-fill" id="probBarHC" style="width: 0%;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- FTD -->
+                            <div class="col-md-4">
+                                <div class="p-3 rounded-3 bg-dark border border-secondary">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span class="text-warning fw-bold"><i class="fa-solid fa-circle text-warning me-1"></i> Dementia (FTD)</span>
+                                        <strong class="text-white" id="probFTD">0%</strong>
+                                    </div>
+                                    <div class="progress" style="height: 10px; background: rgba(255,255,255,0.08);">
+                                        <div class="progress-bar bg-warning prob-bar-fill" id="probBarFTD" style="width: 0%;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- EEG Waveform Visualizer -->
+                    <div class="mb-4">
+                        <h5 class="text-white fw-bold mb-3"><i class="fa-solid fa-wave-square text-info me-2"></i> EEG Signal Waveform Visualizer:</h5>
+                        <div class="p-3 rounded-3 bg-dark border border-secondary text-center">
+                            <img id="resSignalPlot" src="" alt="EEG Waveform Plot" class="img-fluid rounded-3 shadow mb-2" style="max-height: 400px; width: 100%; object-fit: contain;">
+                            <p class="text-white-50 small mb-0">
+                                Continuous microvolt voltage vs. 0.5–45 Hz bandpass filtered and Z-score normalized input tensor.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Recording Metadata Card -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-sm-6 col-md-3">
+                            <div class="p-3 rounded-3 bg-dark border border-secondary text-center">
+                                <small class="text-white-50 d-block">Recording Duration</small>
+                                <strong class="text-white fs-6" id="metaDuration">-</strong>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-3">
+                            <div class="p-3 rounded-3 bg-dark border border-secondary text-center">
+                                <small class="text-white-50 d-block">Target Frequency</small>
+                                <strong class="text-white fs-6" id="metaSfreq">128 Hz</strong>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-3">
+                            <div class="p-3 rounded-3 bg-dark border border-secondary text-center">
+                                <small class="text-white-50 d-block">Analyzed Windows</small>
+                                <strong class="text-white fs-6" id="metaWindows">-</strong>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-3">
+                            <div class="p-3 rounded-3 bg-dark border border-secondary text-center">
+                                <small class="text-white-50 d-block">Channels</small>
+                                <strong class="text-white fs-6">19 Channels (10–20)</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="d-flex flex-wrap gap-3 justify-content-center pt-2">
+                        <button type="button" class="btn btn-outline-info rounded-pill px-4 py-2 fw-semibold" id="resetBtn">
+                            <i class="fa-solid fa-arrow-rotate-left me-2"></i> Analyze Another File
+                        </button>
+                        <button type="button" class="btn btn-outline-light rounded-pill px-4 py-2 fw-semibold" onclick="window.print()">
+                            <i class="fa-solid fa-print me-2"></i> Print / Save Report
+                        </button>
+                        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary rounded-pill px-4 py-2 fw-semibold">
+                            <i class="fa-solid fa-chart-line me-2"></i> View Performance Dashboard
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const fileDetails = document.getElementById('fileDetails');
+    const uploadForm = document.getElementById('uploadForm');
+    const uploadSection = document.getElementById('uploadSection');
+    const scanningSection = document.getElementById('scanningSection');
+    const resultSection = document.getElementById('resultSection');
+    const resetBtn = document.getElementById('resetBtn');
+
+    let animationFrameId = null;
+
+    // Drag and drop handlers
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('dragover');
+    });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+        if (e.dataTransfer.files.length > 0) {
+            fileInput.files = e.dataTransfer.files;
+            displayFileInfo(fileInput.files[0]);
+        }
+    });
+
+    fileInput.addEventListener('change', () => {
+        if (fileInput.files.length > 0) {
+            displayFileInfo(fileInput.files[0]);
+        }
+    });
+
+    function displayFileInfo(file) {
+        fileDetails.innerHTML = `<i class="fa-solid fa-circle-check text-success me-2"></i> Ready for analysis: <strong>${file.name}</strong> (${(file.size / (1024*1024)).toFixed(2)} MB)`;
+        fileDetails.classList.remove('d-none');
+    }
+
+    // Oscilloscope dynamic EEG drawing
+    function startOscilloscope() {
+        const canvas = document.getElementById('eegCanvas');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        canvas.width = canvas.parentElement.clientWidth || 600;
+        canvas.height = 90;
+
+        let step = 0;
+        const numChannels = 3;
+
+        function drawWave() {
+            ctx.fillStyle = 'rgba(4, 9, 20, 0.2)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const colors = ['#06b6d4', '#3b82f6', '#10b981'];
+
+            for (let ch = 0; ch < numChannels; ch++) {
+                ctx.beginPath();
+                ctx.lineWidth = 1.5;
+                ctx.strokeStyle = colors[ch];
+                const baseHeight = (canvas.height / (numChannels + 1)) * (ch + 1);
+
+                for (let x = 0; x < canvas.width; x += 3) {
+                    const freq1 = 0.03 + ch * 0.01;
+                    const freq2 = 0.08 + ch * 0.02;
+                    const y = baseHeight + 
+                              Math.sin((x + step * 2) * freq1) * 8 + 
+                              Math.cos((x - step) * freq2) * 5 + 
+                              (Math.random() - 0.5) * 3;
+                    if (x === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+            }
+
+            step += 2;
+            animationFrameId = requestAnimationFrame(drawWave);
+        }
+        drawWave();
+    }
+
+    function stopOscilloscope() {
+        if (animationFrameId) {
+            cancelAnimationFrame(animationFrameId);
+            animationFrameId = null;
+        }
+    }
+
+    // Form Submission & Live Medical Scanning Animation
+    uploadForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        if (!fileInput.files.length) {
+            alert('Please select an EEG recording file to analyze (.set, .csv, .tsv, .mat).');
+            return;
+        }
+
+        // 1. Switch to scanning state
+        uploadSection.classList.add('d-none');
+        resultSection.classList.add('d-none');
+        scanningSection.classList.remove('d-none');
+        startOscilloscope();
+
+        // 2. Initialize Stage Tracker
+        const stages = ['stage1', 'stage2', 'stage3', 'stage4', 'stage5', 'stage6'];
+        stages.forEach((s) => {
+            const el = document.getElementById(s);
+            el.className = 'stage-item';
+            el.querySelector('i').className = 'fa-regular fa-circle me-2';
+        });
+
+        let currentStageIdx = 0;
+        function advanceStage(idx) {
+            if (idx > 0 && idx <= stages.length) {
+                const prev = document.getElementById(stages[idx - 1]);
+                prev.className = 'stage-item completed';
+                prev.querySelector('i').className = 'fa-solid fa-circle-check me-2 text-success';
+            }
+            if (idx < stages.length) {
+                const curr = document.getElementById(stages[idx]);
+                curr.className = 'stage-item active';
+                curr.querySelector('i').className = 'fa-solid fa-circle-notch fa-spin me-2 text-info';
+            }
+        }
+
+        advanceStage(0);
+        const stageInterval = setInterval(() => {
+            currentStageIdx++;
+            if (currentStageIdx < stages.length) {
+                advanceStage(currentStageIdx);
+            }
+        }, 500);
+
+        // 3. Send AJAX Request
+        const formData = new FormData(uploadForm);
+        try {
+            const response = await fetch("{{ url_for('predict') }}", {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+
+            const data = await response.json();
+            clearInterval(stageInterval);
+
+            // Finish all stages visually
+            for (let i = 0; i < stages.length; i++) {
+                const el = document.getElementById(stages[i]);
+                el.className = 'stage-item completed';
+                el.querySelector('i').className = 'fa-solid fa-circle-check me-2 text-success';
+            }
+
+            if (!response.ok || !data.success) {
+                setTimeout(() => {
+                    stopOscilloscope();
+                    alert(data.error || 'An error occurred during EEG inference.');
+                    scanningSection.classList.add('d-none');
+                    uploadSection.classList.remove('d-none');
+                }, 600);
+                return;
+            }
+
+            // Smooth transition to results
+            setTimeout(() => {
+                stopOscilloscope();
+                renderResults(data);
+                scanningSection.classList.add('d-none');
+                resultSection.classList.remove('d-none');
+            }, 800);
+
+        } catch (err) {
+            clearInterval(stageInterval);
+            stopOscilloscope();
+            alert('Failed to connect to the diagnostic server. ' + err.message);
+            scanningSection.classList.add('d-none');
+            uploadSection.classList.remove('d-none');
+        }
+    });
+
+    // Render Diagnostic Report with Animation
+    function renderResults(data) {
+        document.getElementById('resModelName').innerText = data.model_name || 'CNN-LSTM 80/20';
+        document.getElementById('resFileName').innerText = data.metadata.file_name || 'Uploaded EEG';
+        document.getElementById('resDiagnosisName').innerText = `${data.predicted_label_full} (${data.predicted_class})`;
+
+        const descMap = {
+            'AD': "Consistent with significant Delta/Theta power increase (EEG slowing) and Alpha wave attenuation.",
+            'HC': "Preserved dominant posterior alpha rhythm with standard power distribution.",
+            'FTD': "Observed localized anterior and frontotemporal frequency shifts."
+        };
+        document.getElementById('resDiagnosisDesc').innerText = descMap[data.predicted_class] || "Automated multi-class classification.";
+
+        // Style the diagnosis hero box
+        const banner = document.getElementById('diagnosisBanner');
+        banner.className = `p-4 p-md-5 rounded-4 mb-4 text-center glow-badge-${data.predicted_class.toLowerCase()}`;
+        document.getElementById('resDiagnosisTitle').style.color = data.class_color;
+
+        // Circular Gauge
+        const circle = document.getElementById('radialProgressCircle');
+        const circumference = 2 * Math.PI * 70; // ~439.82
+        circle.style.stroke = data.class_color;
+        circle.style.strokeDasharray = circumference;
+
+        const targetConf = data.confidence;
+        const offset = circumference - (targetConf / 100) * circumference;
+        setTimeout(() => {
+            circle.style.strokeDashoffset = offset;
+        }, 100);
+
+        // Counter Animation
+        animateValue('confidenceValue', 0, targetConf, 1200, '%');
+
+        // Probabilities
+        const adProb = data.class_probabilities.AD || 0;
+        const hcProb = data.class_probabilities.HC || 0;
+        const ftdProb = data.class_probabilities.FTD || 0;
+
+        document.getElementById('probAD').innerText = adProb + '%';
+        document.getElementById('probHC').innerText = hcProb + '%';
+        document.getElementById('probFTD').innerText = ftdProb + '%';
+
+        setTimeout(() => {
+            document.getElementById('probBarAD').style.width = adProb + '%';
+            document.getElementById('probBarHC').style.width = hcProb + '%';
+            document.getElementById('probBarFTD').style.width = ftdProb + '%';
+        }, 200);
+
+        // Plot and Metadata
+        if (data.signal_plot_url) {
+            document.getElementById('resSignalPlot').src = `/static/${data.signal_plot_url}`;
+        }
+        document.getElementById('metaDuration').innerText = `${data.metadata.duration_sec}s`;
+        document.getElementById('metaSfreq').innerText = `${data.metadata.target_sfreq} Hz`;
+        document.getElementById('metaWindows').innerText = `${data.metadata.total_windows} (5s each)`;
+    }
+
+    // Number counting animation
+    function animateValue(id, start, end, duration, suffix = '') {
+        const obj = document.getElementById(id);
+        let startTimestamp = null;
+        const step = (timestamp) => {
+            if (!startTimestamp) startTimestamp = timestamp;
+            const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+            const current = (progress * (end - start) + start).toFixed(1);
+            obj.innerHTML = current + suffix;
+            if (progress < 1) {
+                window.requestAnimationFrame(step);
+            }
+        };
+        window.requestAnimationFrame(step);
+    }
+
+    // Reset back to upload view
+    resetBtn.addEventListener('click', () => {
+        resultSection.classList.add('d-none');
+        uploadSection.classList.remove('d-none');
+        fileInput.value = '';
+        fileDetails.classList.add('d-none');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+</script>
+{% endblock %}
+

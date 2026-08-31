@@ -1,0 +1,176 @@
+﻿{% extends 'base.html' %}
+{% set active_page = 'dashboard' %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- Top Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+        <div>
+            <div class="badge bg-info-subtle text-info border border-info mb-2 px-3 py-2 rounded-pill fw-semibold">
+                <i class="fa-solid fa-gauge-high me-1"></i> Benchmark Analytics
+            </div>
+            <h2 class="text-white fw-bold mb-0">Model Performance & Evaluation Dashboard</h2>
+        </div>
+        <div>
+            <a href="{{ url_for('upload') }}" class="btn btn-primary rounded-pill px-4 py-2 shadow">
+                <i class="fa-solid fa-upload me-2"></i> Test Live EEG
+            </a>
+        </div>
+    </div>
+
+    <!-- Top KPI Cards -->
+    <div class="row g-3 mb-5">
+        <div class="col-md-3">
+            <div class="card p-4 glass-card border border-secondary rounded-4 text-center shadow">
+                <small class="text-white-50 text-uppercase fw-bold">Test Accuracy (Best)</small>
+                <h2 class="text-info fw-bold my-1">{{ best_metrics.Accuracy }}%</h2>
+                <span class="small text-white-50"><i class="fa-solid fa-circle-check text-success"></i> 80/20 Subject Split</span>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card p-4 glass-card border border-secondary rounded-4 text-center shadow">
+                <small class="text-white-50 text-uppercase fw-bold">Macro Precision</small>
+                <h2 class="text-success fw-bold my-1">{{ best_metrics.Precision }}%</h2>
+                <span class="small text-white-50"><i class="fa-solid fa-shield-halved text-success"></i> Balanced Weighting</span>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card p-4 glass-card border border-secondary rounded-4 text-center shadow">
+                <small class="text-white-50 text-uppercase fw-bold">Macro Recall</small>
+                <h2 class="text-primary fw-bold my-1">{{ best_metrics.Recall }}%</h2>
+                <span class="small text-white-50"><i class="fa-solid fa-bullseye text-primary"></i> Multi-Class Sensitivity</span>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card p-4 glass-card border border-secondary rounded-4 text-center shadow">
+                <small class="text-white-50 text-uppercase fw-bold">Macro F1-Score</small>
+                <h2 class="text-warning fw-bold my-1">{{ best_metrics['F1 Score'] }}%</h2>
+                <span class="small text-white-50"><i class="fa-solid fa-star text-warning"></i> Harmonic Mean</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Comparison Table Section -->
+    <div class="card glass-card border border-secondary rounded-4 p-4 shadow-lg mb-5">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="text-white fw-bold mb-0">
+                <i class="fa-solid fa-table-list text-info me-2"></i> Experimental Comparison Table (Subject-Level Partitioning)
+            </h4>
+            <span class="badge bg-secondary">results/model_results.csv</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-dark table-hover table-striped align-middle mb-0">
+                <thead>
+                    <tr class="text-info border-secondary">
+                        <th>Train/Test Split</th>
+                        <th>Target Regime</th>
+                        <th>Accuracy (%)</th>
+                        <th>Precision (%)</th>
+                        <th>Recall (%)</th>
+                        <th>F1 Score (%)</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in results_table %}
+                    <tr>
+                        <td class="fw-bold text-white fs-6">
+                            <i class="fa-solid fa-code-compare text-info me-2"></i> {{ row['Train/Test'] }}
+                        </td>
+                        <td class="text-white-50">
+                            {% if row['Train/Test'] == '80/20' %}High Resource Standard Split
+                            {% elif row['Train/Test'] == '50/50' %}Equal Partition Regime
+                            {% else %}Low Resource Generalization
+                            {% endif %}
+                        </td>
+                        <td class="fw-bold text-info">{{ row['Accuracy'] }}%</td>
+                        <td class="fw-bold text-success">{{ row['Precision'] }}%</td>
+                        <td class="fw-bold text-primary">{{ row['Recall'] }}%</td>
+                        <td class="fw-bold text-warning">{{ row['F1 Score'] }}%</td>
+                        <td>
+                            <span class="badge bg-success-subtle text-success border border-success">Verified</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Tabbed Confusion Matrices & Training Curves -->
+    <div class="card glass-card border border-secondary rounded-4 p-4 shadow-lg mb-5">
+        <h4 class="text-white fw-bold mb-3">
+            <i class="fa-solid fa-chart-area text-info me-2"></i> Evaluation Plots & Confusion Matrix Heatmaps
+        </h4>
+        
+        <!-- Navigation Tabs -->
+        <ul class="nav nav-pills mb-4" id="plotsTab" role="tablist">
+            <li class="nav-item">
+                <button class="nav-link active rounded-pill px-4 me-2" id="split80-tab" data-bs-toggle="pill" data-bs-target="#split80" type="button">
+                    80/20 Experiment
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link rounded-pill px-4 me-2" id="split50-tab" data-bs-toggle="pill" data-bs-target="#split50" type="button">
+                    50/50 Experiment
+                </button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link rounded-pill px-4" id="split20-tab" data-bs-toggle="pill" data-bs-target="#split20" type="button">
+                    20/80 Experiment
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="plotsTabContent">
+            <!-- 80/20 Tab -->
+            <div class="tab-pane fade show active" id="split80">
+                <div class="row g-4">
+                    <div class="col-lg-6 text-center">
+                        <h6 class="text-white fw-bold mb-2">Confusion Matrix Heatmap (80/20 Split)</h6>
+                        <img src="{{ url_for('static', filename='images/results/confusion_matrix_80_20.png') }}" 
+                             alt="Confusion Matrix 80/20" class="img-fluid rounded-3 border border-secondary shadow">
+                    </div>
+                    <div class="col-lg-6 text-center">
+                        <h6 class="text-white fw-bold mb-2">Training vs Validation Curves (80/20 Split)</h6>
+                        <img src="{{ url_for('static', filename='images/results/training_history_80_20.png') }}" 
+                             alt="Training History 80/20" class="img-fluid rounded-3 border border-secondary shadow">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 50/50 Tab -->
+            <div class="tab-pane fade" id="split50">
+                <div class="row g-4">
+                    <div class="col-lg-6 text-center">
+                        <h6 class="text-white fw-bold mb-2">Confusion Matrix Heatmap (50/50 Split)</h6>
+                        <img src="{{ url_for('static', filename='images/results/confusion_matrix_50_50.png') }}" 
+                             alt="Confusion Matrix 50/50" class="img-fluid rounded-3 border border-secondary shadow">
+                    </div>
+                    <div class="col-lg-6 text-center">
+                        <h6 class="text-white fw-bold mb-2">Training vs Validation Curves (50/50 Split)</h6>
+                        <img src="{{ url_for('static', filename='images/results/training_history_50_50.png') }}" 
+                             alt="Training History 50/50" class="img-fluid rounded-3 border border-secondary shadow">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 20/80 Tab -->
+            <div class="tab-pane fade" id="split20">
+                <div class="row g-4">
+                    <div class="col-lg-6 text-center">
+                        <h6 class="text-white fw-bold mb-2">Confusion Matrix Heatmap (20/80 Split)</h6>
+                        <img src="{{ url_for('static', filename='images/results/confusion_matrix_20_80.png') }}" 
+                             alt="Confusion Matrix 20/80" class="img-fluid rounded-3 border border-secondary shadow">
+                    </div>
+                    <div class="col-lg-6 text-center">
+                        <h6 class="text-white fw-bold mb-2">Training vs Validation Curves (20/80 Split)</h6>
+                        <img src="{{ url_for('static', filename='images/results/training_history_20_80.png') }}" 
+                             alt="Training History 20/80" class="img-fluid rounded-3 border border-secondary shadow">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

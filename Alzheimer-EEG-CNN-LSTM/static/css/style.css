@@ -1,0 +1,370 @@
+/* ==========================================================================
+   NeuroScan AI - Custom Healthcare Theme Stylesheet
+   ========================================================================== */
+
+:root {
+    --bg-dark: #0b1120;
+    --card-bg: rgba(17, 24, 39, 0.75);
+    --card-border: rgba(255, 255, 255, 0.1);
+    --primary-cyan: #06b6d4;
+    --primary-blue: #3b82f6;
+    --accent-red: #ef4444;
+    --accent-green: #10b981;
+    --accent-amber: #f59e0b;
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+}
+
+body {
+    background-color: var(--bg-dark);
+    background-image: 
+        radial-gradient(at 0% 0%, rgba(6, 182, 212, 0.12) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(59, 130, 246, 0.12) 0px, transparent 50%);
+    background-attachment: fixed;
+    color: var(--text-main);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.main-container {
+    flex: 1;
+}
+
+/* Glassmorphism Navbar */
+.glass-navbar {
+    background: rgba(11, 17, 32, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--card-border);
+}
+
+.brand-icon {
+    width: 40px;
+    height: 40px;
+    background: rgba(6, 182, 212, 0.15);
+    border: 1px solid rgba(6, 182, 212, 0.3);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.brand-title {
+    font-size: 1.25rem;
+    letter-spacing: -0.5px;
+}
+
+.brand-sub {
+    font-size: 0.72rem;
+}
+
+/* Glassmorphism Cards */
+.glass-card {
+    background: var(--card-bg) !important;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--card-border) !important;
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.feature-card:hover {
+    transform: translateY(-5px);
+    border-color: rgba(6, 182, 212, 0.4) !important;
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Text Gradients */
+.text-gradient {
+    background: linear-gradient(135deg, #38bdf8 0%, #818cf8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* Upload Dropzone */
+.upload-dropzone {
+    background: rgba(15, 23, 42, 0.6);
+    border-color: rgba(6, 182, 212, 0.4);
+    border-style: dashed;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.upload-dropzone:hover, .upload-dropzone.dragover {
+    background: rgba(6, 182, 212, 0.08);
+    border-color: var(--primary-cyan);
+    transform: scale(1.01);
+}
+
+/* EEG Animated Waveform in Hero */
+.eeg-animated-wave {
+    height: 80px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    padding: 10px;
+    overflow: hidden;
+}
+
+.wave-line {
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #06b6d4, #3b82f6, transparent);
+    background-size: 200% 100%;
+    animation: waveMove 3s linear infinite;
+}
+
+.wave-line:nth-child(2) {
+    animation-delay: 1s;
+    background: linear-gradient(90deg, transparent, #10b981, #06b6d4, transparent);
+}
+
+.wave-line:nth-child(3) {
+    animation-delay: 2s;
+    background: linear-gradient(90deg, transparent, #ef4444, #f59e0b, transparent);
+}
+
+@keyframes waveMove {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* ==========================================================================
+   High-Tech Medical AI Scanning & Analysis Animation
+   ========================================================================== */
+
+.scanner-overlay {
+    background: rgba(11, 17, 32, 0.95);
+    border: 1px solid rgba(6, 182, 212, 0.3);
+    box-shadow: 0 0 50px rgba(6, 182, 212, 0.15);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 24px;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Holographic Radar Pulse */
+.scanner-core {
+    position: relative;
+    width: 140px;
+    height: 140px;
+    margin: 0 auto 20px auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.scanner-ring {
+    position: absolute;
+    border-radius: 50%;
+    border: 2px solid transparent;
+}
+
+.scanner-ring-1 {
+    width: 140px;
+    height: 140px;
+    border-top: 2px solid #06b6d4;
+    border-bottom: 2px solid #3b82f6;
+    animation: spinRing 2s cubic-bezier(0.68, -0.55, 0.27, 1.55) infinite;
+}
+
+.scanner-ring-2 {
+    width: 105px;
+    height: 105px;
+    border-left: 2px solid #8b5cf6;
+    border-right: 2px solid #06b6d4;
+    animation: spinRingReverse 3s linear infinite;
+}
+
+.scanner-ring-3 {
+    width: 70px;
+    height: 70px;
+    background: radial-gradient(circle, rgba(6, 182, 212, 0.25) 0%, transparent 70%);
+    animation: corePulse 1.5s ease-in-out infinite alternate;
+}
+
+.scanner-icon {
+    font-size: 2.2rem;
+    color: #38bdf8;
+    filter: drop-shadow(0 0 12px rgba(56, 189, 248, 0.8));
+    animation: iconFloat 2s ease-in-out infinite alternate;
+}
+
+@keyframes spinRing {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes spinRingReverse {
+    0% { transform: rotate(360deg); }
+    100% { transform: rotate(0deg); }
+}
+
+@keyframes corePulse {
+    0% { transform: scale(0.85); opacity: 0.5; }
+    100% { transform: scale(1.15); opacity: 1; }
+}
+
+@keyframes iconFloat {
+    0% { transform: translateY(-2px) scale(0.98); }
+    100% { transform: translateY(2px) scale(1.05); }
+}
+
+/* Oscilloscope Canvas */
+.oscilloscope-box {
+    position: relative;
+    background: rgba(4, 9, 20, 0.85);
+    border: 1px solid rgba(6, 182, 212, 0.25);
+    border-radius: 16px;
+    padding: 12px;
+    overflow: hidden;
+}
+
+.oscilloscope-canvas {
+    width: 100%;
+    height: 90px;
+    display: block;
+}
+
+.scan-line {
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(6, 182, 212, 0.2), transparent);
+    animation: sweepScan 2s linear infinite;
+    pointer-events: none;
+}
+
+@keyframes sweepScan {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}
+
+/* Medical Step Checklist */
+.stage-item {
+    padding: 8px 14px;
+    border-radius: 10px;
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    margin-bottom: 8px;
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 0.9rem;
+    color: #94a3b8;
+}
+
+.stage-item.active {
+    background: rgba(6, 182, 212, 0.12);
+    border-color: rgba(6, 182, 212, 0.5);
+    color: #38bdf8;
+    font-weight: 600;
+    transform: translateX(4px);
+    box-shadow: 0 4px 15px rgba(6, 182, 212, 0.2);
+}
+
+.stage-item.completed {
+    background: rgba(16, 185, 129, 0.08);
+    border-color: rgba(16, 185, 129, 0.3);
+    color: #10b981;
+}
+
+/* ==========================================================================
+   Diagnostic Result Dashboard Enhancements
+   ========================================================================== */
+
+.result-card-container {
+    animation: fadeInSlideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeInSlideUp {
+    0% { opacity: 0; transform: translateY(30px) scale(0.98); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Circular Radial Progress Gauge */
+.radial-progress-wrapper {
+    position: relative;
+    width: 160px;
+    height: 160px;
+    margin: 0 auto;
+}
+
+.radial-progress-svg {
+    transform: rotate(-90deg);
+    width: 100%;
+    height: 100%;
+}
+
+.radial-bg {
+    fill: none;
+    stroke: rgba(255, 255, 255, 0.08);
+    stroke-width: 10;
+}
+
+.radial-fill {
+    fill: none;
+    stroke-width: 10;
+    stroke-linecap: round;
+    stroke-dasharray: 440;
+    stroke-dashoffset: 440;
+    transition: stroke-dashoffset 1.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.radial-center-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+}
+
+/* Glowing Diagnosis Badges */
+.glow-badge-ad {
+    background: radial-gradient(circle, rgba(239, 68, 68, 0.18) 0%, rgba(15, 23, 42, 0.9) 100%);
+    border: 2px solid #ef4444 !important;
+    box-shadow: 0 0 35px rgba(239, 68, 68, 0.35);
+}
+
+.glow-badge-hc {
+    background: radial-gradient(circle, rgba(16, 185, 129, 0.18) 0%, rgba(15, 23, 42, 0.9) 100%);
+    border: 2px solid #10b981 !important;
+    box-shadow: 0 0 35px rgba(16, 185, 129, 0.35);
+}
+
+.glow-badge-ftd {
+    background: radial-gradient(circle, rgba(245, 158, 11, 0.18) 0%, rgba(15, 23, 42, 0.9) 100%);
+    border: 2px solid #f59e0b !important;
+    box-shadow: 0 0 35px rgba(245, 158, 11, 0.35);
+}
+
+/* Animated Probability Bars */
+.prob-bar-fill {
+    width: 0%;
+    transition: width 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Nav Pills Custom Styling */
+.nav-pills .nav-link {
+    color: var(--text-muted);
+    background: rgba(15, 23, 42, 0.8);
+    border: 1px solid var(--card-border);
+    transition: all 0.2s ease;
+}
+
+.nav-pills .nav-link.active {
+    background: #0284c7;
+    color: #fff;
+    border-color: #0284c7;
+    box-shadow: 0 4px 12px rgba(2, 132, 199, 0.4);
+}
+
+/* Footer Styling */
+.footer {
+    background: rgba(11, 17, 32, 0.95);
+    border-top: 1px solid var(--card-border);
+}
+
