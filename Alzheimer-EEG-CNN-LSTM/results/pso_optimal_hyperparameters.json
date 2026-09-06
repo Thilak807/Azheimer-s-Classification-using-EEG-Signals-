@@ -1,0 +1,28 @@
+{
+    "optimal_hyperparameters": {
+        "lr": 0.003698,
+        "dropout_rate": 0.227,
+        "cnn_filters_1": 96,
+        "cnn_filters_2": 192,
+        "lstm_units": 64,
+        "batch_size": 64
+    },
+    "best_fitness": 0.8374080508947372,
+    "history": {
+        "iteration": [
+            1,
+            2,
+            3
+        ],
+        "gbest_fitness": [
+            0.8011083841323853,
+            0.8011083841323853,
+            0.8374080508947372
+        ],
+        "avg_fitness": [
+            0.6087690123915672,
+            0.5856783372163772,
+            0.6925963747501374
+        ]
+    }
+}
