@@ -122,12 +122,51 @@ def main(data_dir=None, epochs=40, batch_size=32, lr=0.001, target_samples=1000)
         )
         results_list.append(metrics)
         
-    # 4. Save Final Summary Table
+    # 4. Optional PSO Hyperparameter Optimization (Feature 8)
+    if run_pso:
+        print("\n" + "#" * 75)
+        print("FEATURE 8: PARTICLE SWARM OPTIMIZATION (PSO) HYPERPARAMETER TUNING")
+        print("#" * 75)
+        from src.pso_optimizer import PSOHyperparameterOptimizer
+        
+        # Use 80/20 train/test data for PSO search
+        pso = PSOHyperparameterOptimizer(
+            X_train=X_train,
+            y_train=y_train,
+            X_val=X_test,
+            y_val=y_test,
+            n_particles=6,
+            n_iterations=5,
+            eval_epochs=3,
+            random_state=42
+        )
+        best_hp, best_fit, pso_hist = pso.optimize(verbose=True)
+        static_img_dir = os.path.join(PROJECT_ROOT, "static", "images", "results")
+        pso.save_results(output_dir=results_dir, static_dir=static_img_dir)
+        
+        # Train and save final PSO-optimized model
+        final_ckpt = os.path.join(models_dir, "cnn_lstm_pso_optimized.pt")
+        pso_model_wrapper, pso_train_hist = pso.train_final_model(
+            epochs=epochs,
+            output_checkpoint_path=final_ckpt
+        )
+        
+        pso_metrics = evaluate_experiment(
+            pso_model_wrapper,
+            X_test, y_test,
+            class_names=CLASS_NAMES,
+            experiment_name="pso_optimized",
+            history=pso_train_hist,
+            results_dir=results_dir
+        )
+        results_list.append(pso_metrics)
+        
+    # 5. Save Final Summary Table
     csv_path = os.path.join(results_dir, "model_results.csv")
     save_summary_comparison_table(results_list, output_csv=csv_path)
     
     print("\n" + "=" * 75)
-    print("ALL EXPERIMENTS COMPLETED SUCCESSFULLY!")
+    print("ALL PIPELINE STAGES COMPLETED SUCCESSFULLY!")
     print(f"Results CSV: {csv_path}")
     print(f"Models Saved in: {models_dir}")
     print(f"Plots Saved in: {results_dir}")
@@ -135,12 +174,13 @@ def main(data_dir=None, epochs=40, batch_size=32, lr=0.001, target_samples=1000)
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Alzheimer's EEG Hybrid CNN-LSTM Pipeline")
+    parser = argparse.ArgumentParser(description="Alzheimer's EEG Hybrid CNN-LSTM Pipeline with PSO")
     parser.add_argument("--data_dir", type=str, default=None, help="Path to OpenNeuro ds004504 dataset root")
     parser.add_argument("--epochs", type=int, default=35, help="Number of training epochs")
     parser.add_argument("--batch_size", type=int, default=32, help="Batch size")
     parser.add_argument("--lr", type=float, default=0.001, help="Learning rate")
     parser.add_argument("--target_samples", type=int, default=1000, help="Target total EEG windows")
+    parser.add_argument("--run_pso", action="store_true", help="Execute PSO Hyperparameter Optimization")
     args = parser.parse_args()
     
     main(
@@ -148,5 +188,7 @@ if __name__ == "__main__":
         epochs=args.epochs,
         batch_size=args.batch_size,
         lr=args.lr,
-        target_samples=args.target_samples
+        target_samples=args.target_samples,
+        run_pso=args.run_pso
     )
+

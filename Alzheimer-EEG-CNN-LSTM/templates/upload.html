@@ -82,25 +82,26 @@
                 <!-- Step Checklist -->
                 <div class="text-start mx-auto" style="max-width: 580px;">
                     <div class="stage-item" id="stage1">
-                        <i class="fa-solid fa-circle-notch fa-spin me-2 text-info"></i> <strong>Phase 1:</strong> Signal Parsing & Channel Alignment (19-Channel 10–20 System)
+                        <i class="fa-solid fa-circle-notch fa-spin me-2 text-info"></i> <strong>1. EEG Data:</strong> Multichannel EEG Parsing (19-Channel 10–20 System)
                     </div>
                     <div class="stage-item" id="stage2">
-                        <i class="fa-regular fa-circle me-2"></i> <strong>Phase 2:</strong> 0.5–45 Hz Bandpass & 50 Hz Notch Filtering
+                        <i class="fa-regular fa-circle me-2"></i> <strong>2. Filtering:</strong> 0.5–45 Hz Bandpass & 50 Hz Notch Filtering
                     </div>
                     <div class="stage-item" id="stage3">
-                        <i class="fa-regular fa-circle me-2"></i> <strong>Phase 3:</strong> Z-Score Standardization & Resampling (128 Hz)
+                        <i class="fa-regular fa-circle me-2"></i> <strong>3. Artifact Removal:</strong> ICA (Independent Component Analysis) Decontamination
                     </div>
                     <div class="stage-item" id="stage4">
-                        <i class="fa-regular fa-circle me-2"></i> <strong>Phase 4:</strong> 5.0s Spatial-Temporal Segmentation (640 Timesteps x 19 Channels)
+                        <i class="fa-regular fa-circle me-2"></i> <strong>4. Segmentation &amp; Norm:</strong> 5.0s Epoch Windows &amp; Z-score Normalization
                     </div>
                     <div class="stage-item" id="stage5">
-                        <i class="fa-regular fa-circle me-2"></i> <strong>Phase 5:</strong> Hybrid CNN-LSTM Neural Network Multi-Class Inference
+                        <i class="fa-regular fa-circle me-2"></i> <strong>5. 3B CNN &amp; 4B LSTM:</strong> Spatial-Temporal Feature Extraction &amp; Temporal Sequence Modeling
                     </div>
                     <div class="stage-item" id="stage6">
-                        <i class="fa-regular fa-circle me-2"></i> <strong>Phase 6:</strong> Synthesizing Diagnostic Probability Report
+                        <i class="fa-regular fa-circle me-2"></i> <strong>6. Output 7:</strong> Disease Stage Staging (Cognitively Normal, MCI, Alzheimer's)
                     </div>
                 </div>
             </div>
+
 
             <!-- ========================================== -->
             <!-- 3. DYNAMIC MEDICAL RESULT DASHBOARD        -->
@@ -156,11 +157,11 @@
                                     </div>
                                 </div>
                             </div>
-                            <!-- HC -->
+                            <!-- CN -->
                             <div class="col-md-4">
                                 <div class="p-3 rounded-3 bg-dark border border-secondary">
                                     <div class="d-flex justify-content-between align-items-center mb-2">
-                                        <span class="text-success fw-bold"><i class="fa-solid fa-circle text-success me-1"></i> Healthy (HC)</span>
+                                        <span class="text-success fw-bold"><i class="fa-solid fa-circle text-success me-1"></i> Normal (CN)</span>
                                         <strong class="text-white" id="probHC">0%</strong>
                                     </div>
                                     <div class="progress" style="height: 10px; background: rgba(255,255,255,0.08);">
@@ -168,11 +169,11 @@
                                     </div>
                                 </div>
                             </div>
-                            <!-- FTD -->
+                            <!-- MCI -->
                             <div class="col-md-4">
                                 <div class="p-3 rounded-3 bg-dark border border-secondary">
                                     <div class="d-flex justify-content-between align-items-center mb-2">
-                                        <span class="text-warning fw-bold"><i class="fa-solid fa-circle text-warning me-1"></i> Dementia (FTD)</span>
+                                        <span class="text-warning fw-bold"><i class="fa-solid fa-circle text-warning me-1"></i> Impairment (MCI)</span>
                                         <strong class="text-white" id="probFTD">0%</strong>
                                     </div>
                                     <div class="progress" style="height: 10px; background: rgba(255,255,255,0.08);">
@@ -430,9 +431,11 @@
         document.getElementById('resDiagnosisName').innerText = `${data.predicted_label_full} (${data.predicted_class})`;
 
         const descMap = {
-            'AD': "Consistent with significant Delta/Theta power increase (EEG slowing) and Alpha wave attenuation.",
-            'HC': "Preserved dominant posterior alpha rhythm with standard power distribution.",
-            'FTD': "Observed localized anterior and frontotemporal frequency shifts."
+            'AD': "Consistent with significant Delta/Theta power increase (EEG slowing) and Alpha wave attenuation characteristic of Alzheimer's Disease.",
+            'CN': "Preserved dominant posterior alpha rhythm with standard power distribution characteristic of Cognitively Normal individuals.",
+            'HC': "Preserved dominant posterior alpha rhythm with standard power distribution characteristic of Cognitively Normal individuals.",
+            'MCI': "Observed transitional slowing and altered theta/alpha ratios characteristic of Mild Cognitive Impairment.",
+            'FTD': "Observed transitional slowing and altered theta/alpha ratios characteristic of Mild Cognitive Impairment."
         };
         document.getElementById('resDiagnosisDesc').innerText = descMap[data.predicted_class] || "Automated multi-class classification.";
 
@@ -456,20 +459,21 @@
         // Counter Animation
         animateValue('confidenceValue', 0, targetConf, 1200, '%');
 
-        // Probabilities
+        // Probabilities (CN, MCI, AD)
         const adProb = data.class_probabilities.AD || 0;
-        const hcProb = data.class_probabilities.HC || 0;
-        const ftdProb = data.class_probabilities.FTD || 0;
+        const cnProb = data.class_probabilities.CN || data.class_probabilities.HC || 0;
+        const mciProb = data.class_probabilities.MCI || data.class_probabilities.FTD || 0;
 
         document.getElementById('probAD').innerText = adProb + '%';
-        document.getElementById('probHC').innerText = hcProb + '%';
-        document.getElementById('probFTD').innerText = ftdProb + '%';
+        document.getElementById('probHC').innerText = cnProb + '%';
+        document.getElementById('probFTD').innerText = mciProb + '%';
 
         setTimeout(() => {
             document.getElementById('probBarAD').style.width = adProb + '%';
-            document.getElementById('probBarHC').style.width = hcProb + '%';
-            document.getElementById('probBarFTD').style.width = ftdProb + '%';
+            document.getElementById('probBarHC').style.width = cnProb + '%';
+            document.getElementById('probBarFTD').style.width = mciProb + '%';
         }, 200);
+
 
         // Plot and Metadata
         if (data.signal_plot_url) {

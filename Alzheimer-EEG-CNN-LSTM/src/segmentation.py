@@ -4,8 +4,11 @@ Generates ~1000 EEG samples using fixed-length windowing while strictly enforcin
 SUBJECT-LEVEL train/test splits to eliminate data leakage.
 """
 
+import os
+import pickle
 import numpy as np
 from sklearn.model_selection import train_test_split
+
 from .data_loader import (
     get_subject_label_map,
     load_subject_eeg,
@@ -13,9 +16,11 @@ from .data_loader import (
 )
 from .preprocessing import preprocess_raw_eeg
 
-CLASS_TO_IDX = {'AD': 0, 'HC': 1, 'FTD': 2}
-IDX_TO_CLASS = {0: 'AD', 1: 'HC', 2: 'FTD'}
-CLASS_NAMES = ['AD', 'HC', 'FTD']
+# Clinical Disease Stages: CN: Cognitively Normal, MCI: Mild Cognitive Impairment, AD: Alzheimer's Disease
+CLASS_TO_IDX = {'AD': 0, 'CN': 1, 'MCI': 2, 'HC': 1, 'FTD': 2}
+IDX_TO_CLASS = {0: 'AD', 1: 'CN', 2: 'MCI'}
+CLASS_NAMES = ['AD', 'CN', 'MCI']
+
 
 
 def slice_into_windows(eeg_data, sfreq=128.0, window_sec=5.0, overlap=0.5, max_windows_per_subject=None):
@@ -48,18 +53,31 @@ def slice_into_windows(eeg_data, sfreq=128.0, window_sec=5.0, overlap=0.5, max_w
     return np.array(windows, dtype=np.float32)
 
 
-def load_and_preprocess_all_subjects(dataset_path, target_sfreq=128.0, verbose=False):
+def load_and_preprocess_all_subjects(dataset_path, target_sfreq=128.0, max_subjects=None, verbose=False):
     """
-    Preprocesses all available subjects in the dataset.
+    Preprocesses available subjects in the dataset with disk caching.
     Returns a list of dicts:
     [{'subject_id': sid, 'group': 'AD', 'data': (n_channels, n_times)}, ...]
     """
+    import pickle
+    cache_path = os.path.join(dataset_path, f"preprocessed_cache_{int(target_sfreq)}hz.pkl")
+    if max_subjects is None and os.path.exists(cache_path):
+        try:
+            with open(cache_path, 'rb') as f:
+                records = pickle.load(f)
+            print(f"Loaded {len(records)} preprocessed subjects from disk cache: {cache_path}", flush=True)
+            return records
+        except Exception as err:
+            print(f"Cache read error: {err}. Recomputing...", flush=True)
+
     label_map = get_subject_label_map(dataset_path)
     subject_records = []
     
     available_sids = [sid for sid in sorted(label_map.keys()) if locate_subject_file(sid, dataset_path) is not None]
-    
-    print(f"Loading and preprocessing {len(available_sids)} available subjects from '{dataset_path}'...")
+    if max_subjects is not None and max_subjects > 0:
+        available_sids = available_sids[:max_subjects]
+        
+    print(f"Loading and preprocessing {len(available_sids)} available subjects from '{dataset_path}'...", flush=True)
     
     for i, sid in enumerate(available_sids):
         try:
@@ -74,12 +92,21 @@ def load_and_preprocess_all_subjects(dataset_path, target_sfreq=128.0, verbose=F
                 'sfreq': actual_sfreq,
                 'channels': ch_names
             })
-            if verbose or (i + 1) % 20 == 0 or (i + 1) == len(available_sids):
-                print(f"  Processed {i+1}/{len(available_sids)} subjects (sub-{sid:03d} -> {group}).")
+            if verbose or (i + 1) % 15 == 0 or (i + 1) == len(available_sids):
+                print(f"  Processed {i+1}/{len(available_sids)} subjects (sub-{sid:03d} -> {group}).", flush=True)
         except Exception as e:
-            print(f"  Warning: skipping sub-{sid:03d} due to error: {e}")
+            print(f"  Warning: skipping sub-{sid:03d} due to error: {e}", flush=True)
+            
+    if max_subjects is None and len(subject_records) > 0:
+        try:
+            with open(cache_path, 'wb') as f:
+                pickle.dump(subject_records, f)
+            print(f"Saved {len(subject_records)} preprocessed subjects to disk cache: {cache_path}", flush=True)
+        except Exception as err:
+            print(f"Warning: could not write cache: {err}", flush=True)
             
     return subject_records
+
 
 
 def generate_all_windows(subject_records, window_sec=5.0, overlap=0.5, sfreq=128.0, target_total_samples=1000):
@@ -96,7 +123,7 @@ def generate_all_windows(subject_records, window_sec=5.0, overlap=0.5, sfreq=128
     all_X = []
     all_y = []
     all_subject_ids = []
-    group_window_counts = {'AD': 0, 'HC': 0, 'FTD': 0}
+    group_window_counts = {'AD': 0, 'CN': 0, 'MCI': 0}
     
     for rec in subject_records:
         wins = slice_into_windows(
@@ -111,7 +138,8 @@ def generate_all_windows(subject_records, window_sec=5.0, overlap=0.5, sfreq=128
             all_X.append(wins)
             all_y.append(np.full((n_wins,), rec['label_idx'], dtype=np.int64))
             all_subject_ids.extend([rec['subject_id']] * n_wins)
-            group_window_counts[rec['group']] += n_wins
+            canon_grp = IDX_TO_CLASS.get(rec['label_idx'], rec['group'])
+            group_window_counts[canon_grp] = group_window_counts.get(canon_grp, 0) + n_wins
             
     X = np.vstack(all_X)
     y = np.concatenate(all_y)
@@ -121,9 +149,9 @@ def generate_all_windows(subject_records, window_sec=5.0, overlap=0.5, sfreq=128
     print("=" * 60)
     print(f"Total subjects    : {n_sub}")
     print(f"Total EEG windows : {len(y)}")
-    print(f"AD windows        : {group_window_counts['AD']}")
-    print(f"HC windows        : {group_window_counts['HC']}")
-    print(f"FTD windows       : {group_window_counts['FTD']}")
+    print(f"AD windows        : {group_window_counts.get('AD', 0)}")
+    print(f"CN windows        : {group_window_counts.get('CN', 0)}")
+    print(f"MCI windows       : {group_window_counts.get('MCI', 0)}")
     print(f"Window Shape      : {X.shape[1:]} (TimeSteps x Channels)")
     print(f"Final dataset shape: {X.shape}")
     print("=" * 60 + "\n")
@@ -165,7 +193,7 @@ def create_subject_stratified_split(subject_records, test_size=0.5, random_state
     
     def extract_windows_for_records(records):
         X_list, y_list, sids_list = [], [], []
-        counts = {'AD': 0, 'HC': 0, 'FTD': 0}
+        counts = {'AD': 0, 'CN': 0, 'MCI': 0}
         for rec in records:
             wins = slice_into_windows(
                 rec['data'], 
@@ -178,10 +206,12 @@ def create_subject_stratified_split(subject_records, test_size=0.5, random_state
                 X_list.append(wins)
                 y_list.append(np.full((len(wins),), rec['label_idx'], dtype=np.int64))
                 sids_list.extend([rec['subject_id']] * len(wins))
-                counts[rec['group']] += len(wins)
+                canon_grp = IDX_TO_CLASS.get(rec['label_idx'], rec['group'])
+                counts[canon_grp] = counts.get(canon_grp, 0) + len(wins)
         if len(X_list) == 0:
             return np.empty((0, int(window_sec*sfreq), 19)), np.empty((0,), dtype=np.int64), np.array([]), counts
         return np.vstack(X_list), np.concatenate(y_list), np.array(sids_list), counts
+
 
     X_train, y_train, train_sids_arr, train_counts = extract_windows_for_records(train_records)
     X_test, y_test, test_sids_arr, test_counts = extract_windows_for_records(test_records)

@@ -95,71 +95,144 @@ def build_keras_cnn_lstm_model(input_shape, num_classes=3, lr=0.001):
 
 
 if HAS_TORCH:
-    class PyTorchHybridCNNLSTM(nn.Module):
+    class SpatialTemporalCNNFeatureExtractor(nn.Module):
         """
-        PyTorch Implementation of the Hybrid CNN-LSTM Model.
+        3B. CNN - SPATIAL & TEMPORAL FEATURE EXTRACTION (EEG)
+        Hierarchical 1D CNN blocks to capture spectral-spatial relationships
+        across multichannel EEG recordings.
         """
-        def __init__(self, n_channels=19, window_length=640, num_classes=3):
-            super(PyTorchHybridCNNLSTM, self).__init__()
-            
-            # 1D CNN Feature Extractor (Input: [batch, n_channels, window_length])
+        def __init__(self, in_channels=19, filters_1=64, filters_2=128, dropout_rate=0.3):
+            super(SpatialTemporalCNNFeatureExtractor, self).__init__()
             self.conv1 = nn.Sequential(
-                nn.Conv1d(in_channels=n_channels, out_channels=64, kernel_size=7, padding=3),
-                nn.BatchNorm1d(64),
+                nn.Conv1d(in_channels=in_channels, out_channels=filters_1, kernel_size=7, padding=3),
+                nn.BatchNorm1d(filters_1),
                 nn.ReLU(),
                 nn.MaxPool1d(kernel_size=2),
-                nn.Dropout(0.3)
+                nn.Dropout(dropout_rate)
             )
             self.conv2 = nn.Sequential(
-                nn.Conv1d(in_channels=64, out_channels=128, kernel_size=5, padding=2),
-                nn.BatchNorm1d(128),
+                nn.Conv1d(in_channels=filters_1, out_channels=filters_2, kernel_size=5, padding=2),
+                nn.BatchNorm1d(filters_2),
                 nn.ReLU(),
                 nn.MaxPool1d(kernel_size=2),
-                nn.Dropout(0.3)
+                nn.Dropout(dropout_rate)
             )
             self.conv3 = nn.Sequential(
-                nn.Conv1d(in_channels=128, out_channels=128, kernel_size=3, padding=1),
-                nn.BatchNorm1d(128),
+                nn.Conv1d(in_channels=filters_2, out_channels=filters_2, kernel_size=3, padding=1),
+                nn.BatchNorm1d(filters_2),
                 nn.ReLU(),
                 nn.MaxPool1d(kernel_size=2),
-                nn.Dropout(0.3)
+                nn.Dropout(dropout_rate)
             )
             
-            # Bidirectional LSTM Layer
+        def forward(self, x):
+            # Input: [batch, in_channels, window_length]
+            x = self.conv1(x)
+            x = self.conv2(x)
+            x = self.conv3(x)
+            return x # [batch, filters_2, reduced_time]
+
+    class TemporalSequenceLSTM(nn.Module):
+        """
+        4B. LSTM - TEMPORAL SEQUENCE MODELING
+        Recurrent bidirectional sequence network to learn dynamic temporal
+        transitions and long-range dependencies across the CNN feature sequence.
+        """
+        def __init__(self, input_size=128, hidden_size=64, bidirectional=True, dropout_rate=0.4):
+            super(TemporalSequenceLSTM, self).__init__()
+            self.bidirectional = bidirectional
+            self.hidden_size = hidden_size
             self.lstm = nn.LSTM(
-                input_size=128,
-                hidden_size=64,
+                input_size=input_size,
+                hidden_size=hidden_size,
+                num_layers=1,
+                batch_first=True,
+                bidirectional=bidirectional
+            )
+            self.dropout = nn.Dropout(dropout_rate)
+            
+        def forward(self, x):
+            # Input: [batch, time_steps, input_size]
+            lstm_out, _ = self.lstm(x)
+            last_step = lstm_out[:, -1, :] # [batch, hidden_size * (2 if bi else 1)]
+            return self.dropout(last_step)
+
+    class PyTorchHybridCNNLSTM(nn.Module):
+        """
+        Complete Hybrid CNN-LSTM Pipeline:
+        - 3B: CNN Spatial/Temporal Feature Extractor
+        - 4B: LSTM Temporal Sequence Modeler
+        - 6 & 7: Output Disease Staging (CN, MCI, AD)
+        """
+        def __init__(self, n_channels=19, window_length=640, num_classes=3,
+                     filters_1=64, filters_2=128, lstm_units=64, dropout_rate=0.3):
+            super(PyTorchHybridCNNLSTM, self).__init__()
+            self.n_channels = n_channels
+            self.window_length = window_length
+            self.num_classes = num_classes
+            
+            # 3B: CNN Spatial-Temporal Extractor (named for weight compatibility)
+            self.conv1 = nn.Sequential(
+                nn.Conv1d(in_channels=n_channels, out_channels=filters_1, kernel_size=7, padding=3),
+                nn.BatchNorm1d(filters_1),
+                nn.ReLU(),
+                nn.MaxPool1d(kernel_size=2),
+                nn.Dropout(dropout_rate)
+            )
+            self.conv2 = nn.Sequential(
+                nn.Conv1d(in_channels=filters_1, out_channels=filters_2, kernel_size=5, padding=2),
+                nn.BatchNorm1d(filters_2),
+                nn.ReLU(),
+                nn.MaxPool1d(kernel_size=2),
+                nn.Dropout(dropout_rate)
+            )
+            self.conv3 = nn.Sequential(
+                nn.Conv1d(in_channels=filters_2, out_channels=filters_2, kernel_size=3, padding=1),
+                nn.BatchNorm1d(filters_2),
+                nn.ReLU(),
+                nn.MaxPool1d(kernel_size=2),
+                nn.Dropout(dropout_rate)
+            )
+            
+            # 4B: LSTM Temporal Modeler
+            self.lstm = nn.LSTM(
+                input_size=filters_2,
+                hidden_size=lstm_units,
                 num_layers=1,
                 batch_first=True,
                 bidirectional=True
             )
-            self.lstm_dropout = nn.Dropout(0.4)
+            self.lstm_dropout = nn.Dropout(min(0.5, dropout_rate + 0.1))
             
-            # Fully Connected Classifier
+            # 6 & 7: Classification Head (CN, MCI, AD)
+            lstm_out_dim = lstm_units * 2
             self.fc1 = nn.Sequential(
-                nn.Linear(64 * 2, 64),
+                nn.Linear(lstm_out_dim, 64),
                 nn.BatchNorm1d(64),
                 nn.ReLU(),
-                nn.Dropout(0.3)
+                nn.Dropout(dropout_rate)
             )
             self.fc_out = nn.Linear(64, num_classes)
             
-        def forward(self, x):
-            # Input shape: [batch, window_length, n_channels] -> transpose to [batch, n_channels, window_length]
-            x = x.transpose(1, 2)
+        def extract_cnn_features(self, x):
+            """Returns 3B CNN spatial-temporal feature map: [batch, reduced_time, filters_2]"""
+            x = x.transpose(1, 2) # [batch, channels, time]
             x = self.conv1(x)
             x = self.conv2(x)
             x = self.conv3(x)
+            return x.transpose(1, 2) # [batch, reduced_time, filters_2]
             
-            # Transpose for LSTM: [batch, 128, reduced_time] -> [batch, reduced_time, 128]
-            x = x.transpose(1, 2)
-            lstm_out, _ = self.lstm(x)
-            
-            # Take last time step or mean pool across time
+        def extract_lstm_features(self, x):
+            """Returns 4B LSTM temporal feature vector: [batch, lstm_out_dim]"""
+            cnn_feat = self.extract_cnn_features(x)
+            lstm_out, _ = self.lstm(cnn_feat)
             last_step = lstm_out[:, -1, :]
-            last_step = self.lstm_dropout(last_step)
+            return self.lstm_dropout(last_step)
             
-            dense = self.fc1(last_step)
+        def forward(self, x):
+            # Extract LSTM temporal feature vector and classify
+            temporal_vec = self.extract_lstm_features(x)
+            dense = self.fc1(temporal_vec)
             logits = self.fc_out(dense)
             return logits
 
@@ -168,10 +241,19 @@ class UnifiedEEGModelWrapper:
     """
     Unified model interface providing standard .fit(), .predict(), .evaluate(), and .save() methods
     regardless of whether Keras or PyTorch is running underneath.
+    Supports dynamic hyperparameters from PSO (Particle Swarm Optimization).
     """
-    def __init__(self, input_shape, num_classes=3, lr=0.001, framework='auto'):
+    def __init__(self, input_shape, num_classes=3, lr=0.001, framework='auto', hyperparams=None):
         self.input_shape = input_shape
         self.num_classes = num_classes
+        self.lr = lr
+        self.hyperparams = hyperparams or {}
+        
+        filters_1 = int(self.hyperparams.get('cnn_filters_1', 64))
+        filters_2 = int(self.hyperparams.get('cnn_filters_2', 128))
+        lstm_units = int(self.hyperparams.get('lstm_units', 64))
+        dropout_rate = float(self.hyperparams.get('dropout_rate', 0.3))
+        lr = float(self.hyperparams.get('lr', self.lr))
         self.lr = lr
         
         if framework == 'auto':
@@ -190,9 +272,18 @@ class UnifiedEEGModelWrapper:
             n_channels = input_shape[1]
             win_len = input_shape[0]
             self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-            self.model = PyTorchHybridCNNLSTM(n_channels=n_channels, window_length=win_len, num_classes=num_classes).to(self.device)
+            self.model = PyTorchHybridCNNLSTM(
+                n_channels=n_channels,
+                window_length=win_len,
+                num_classes=num_classes,
+                filters_1=filters_1,
+                filters_2=filters_2,
+                lstm_units=lstm_units,
+                dropout_rate=dropout_rate
+            ).to(self.device)
             self.optimizer = optim.Adam(self.model.parameters(), lr=lr, weight_decay=1e-4)
             self.criterion = nn.CrossEntropyLoss()
+
 
     def summary(self):
         print("\n" + "=" * 65)
@@ -282,8 +373,9 @@ class UnifiedEEGModelWrapper:
                     # Early stopping tracking
                     if val_loss < best_val_loss:
                         best_val_loss = val_loss
-                        best_state = self.model.state_dict().copy()
+                        best_state = {k: v.cpu().clone() for k, v in self.model.state_dict().items()}
                         patience_counter = 0
+
                     else:
                         patience_counter += 1
                         if patience_counter >= patience:

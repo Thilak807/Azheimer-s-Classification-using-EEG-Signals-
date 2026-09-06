@@ -1,3 +1,39 @@
-venv/ 
-__pycache__/ 
-*.pyc 
+# Virtual environments
+venv/
+env/
+.env/
+
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+
+# OS metadata
+.DS_Store
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+# Large dataset preprocessed cache files & raw split data
+*.pkl
+*.pickle
+*.h5
+*.hdf5
+dataset/preprocessed_cache_*.pkl
+Alzheimer-EEG-CNN-LSTM/dataset/preprocessed_cache_*.pkl
+Alzheimer-EEG-CNN-LSTM/dataset/AD/
+Alzheimer-EEG-CNN-LSTM/dataset/CONTROL/
+Alzheimer-EEG-CNN-LSTM/dataset/MCI/
+dataset/AD/
+dataset/CONTROL/
+dataset/MCI/
+
+# Uploads directory (runtime user uploads)
+Alzheimer-EEG-CNN-LSTM/uploads/*
+!Alzheimer-EEG-CNN-LSTM/uploads/.gitkeep
+
+# Runtime generated plots
+Alzheimer-EEG-CNN-LSTM/static/images/generated/*
+!Alzheimer-EEG-CNN-LSTM/static/images/generated/.gitkeep
+

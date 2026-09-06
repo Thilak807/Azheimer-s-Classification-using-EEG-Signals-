@@ -1,4 +1,4 @@
-﻿{% extends 'base.html' %}
+{% extends 'base.html' %}
 {% set active_page = 'home' %}
 
 {% block content %}
@@ -47,14 +47,14 @@
                         </div>
                         <div class="col-4">
                             <div class="p-2 rounded bg-dark border border-success text-center">
-                                <small class="text-success fw-bold d-block">HC</small>
-                                <span class="small text-white-50">Healthy</span>
+                                <small class="text-success fw-bold d-block">CN</small>
+                                <span class="small text-white-50">Normal</span>
                             </div>
                         </div>
                         <div class="col-4">
                             <div class="p-2 rounded bg-dark border border-warning text-center">
-                                <small class="text-warning fw-bold d-block">FTD</small>
-                                <span class="small text-white-50">Dementia</span>
+                                <small class="text-warning fw-bold d-block">MCI</small>
+                                <span class="small text-white-50">Impairment</span>
                             </div>
                         </div>
                     </div>
@@ -64,65 +64,69 @@
     </div>
 </div>
 
-<!-- Three Core Feature Cards -->
+<!-- Architecture Diagram Feature Cards -->
 <div class="container py-5">
     <div class="text-center mb-5">
-        <h2 class="fw-bold text-white">System Highlights & Pipeline Architecture</h2>
-        <p class="text-white-50">Seamless end-to-end framework from raw electrophysiological recordings to clinical classification.</p>
+        <div class="badge bg-info-subtle text-info border border-info mb-2 px-3 py-2 rounded-pill fw-semibold">
+            EEG Pathway + PSO Architecture
+        </div>
+        <h2 class="fw-bold text-white">System Architecture & Pipeline Features</h2>
+        <p class="text-white-50">End-to-end framework integrating multichannel EEG data, 5-stage preprocessing with ICA, CNN-LSTM, and PSO optimization.</p>
     </div>
     
     <div class="row g-4">
-        <!-- Card 1 -->
+        <!-- Card 1: 1 & 2 EEG Preprocessing -->
         <div class="col-md-4">
             <div class="card h-100 feature-card p-4 glass-card border border-secondary rounded-4 shadow">
                 <div class="feature-icon-wrapper mb-3 text-info">
                     <i class="fa-solid fa-sliders fa-2x"></i>
                 </div>
-                <h4 class="text-white fw-bold">1. EEG Signal Processing</h4>
+                <h4 class="text-white fw-bold">1 &amp; 2. Preprocessing &amp; ICA</h4>
                 <p class="text-white-50">
-                    Applies 0.5–45.0 Hz bandpass filtering, 50 Hz power line notch filtering, 128 Hz resampling, and channel-wise Z-score normalization across 19 standard scalp channels.
+                    Complete 5-stage pipeline: 0.5–45 Hz bandpass filtering, 50 Hz notch filter, <strong>Artifact Removal via ICA (Independent Component Analysis)</strong>, 5s epoch segmentation, and Z-score normalization.
                 </p>
                 <ul class="list-unstyled text-white-50 small mt-auto">
-                    <li><i class="fa-solid fa-check text-info me-2"></i>10-20 Standard Electrode Layout</li>
-                    <li><i class="fa-solid fa-check text-info me-2"></i>Artifact Clipping & Standardization</li>
+                    <li><i class="fa-solid fa-check text-info me-2"></i>19-Channel 10-20 Standard Layout</li>
+                    <li><i class="fa-solid fa-check text-info me-2"></i>FastICA Ocular/Muscle Decontamination</li>
                 </ul>
             </div>
         </div>
         
-        <!-- Card 2 -->
+        <!-- Card 2: 3B CNN & 4B LSTM -->
         <div class="col-md-4">
             <div class="card h-100 feature-card p-4 glass-card border border-secondary rounded-4 shadow">
                 <div class="feature-icon-wrapper mb-3 text-primary">
                     <i class="fa-solid fa-network-wired fa-2x"></i>
                 </div>
-                <h4 class="text-white fw-bold">2. CNN-LSTM Deep Model</h4>
+                <h4 class="text-white fw-bold">3B &amp; 4B. CNN-LSTM Modeling</h4>
                 <p class="text-white-50">
-                    1D Convolutional layers extract localized spatial and morphological wave patterns, while Bidirectional LSTM layers model long-range temporal sequence dependencies.
+                    Multi-scale 1D CNN layers extract spatial and morphological EEG features, while Bi-LSTM sequence units capture temporal transitions and long-range electrophysiological memory.
                 </p>
                 <ul class="list-unstyled text-white-50 small mt-auto">
-                    <li><i class="fa-solid fa-check text-primary me-2"></i>Multi-Scale 1D Conv Kernels (7, 5, 3)</li>
-                    <li><i class="fa-solid fa-check text-primary me-2"></i>Bidirectional LSTM Temporal Memory</li>
+                    <li><i class="fa-solid fa-check text-primary me-2"></i>3B: Spatial-Temporal Feature Extractor</li>
+                    <li><i class="fa-solid fa-check text-primary me-2"></i>4B: Bi-LSTM Temporal Modeling</li>
                 </ul>
             </div>
         </div>
         
-        <!-- Card 3 -->
+        <!-- Card 3: 7 Output & 8 PSO -->
         <div class="col-md-4">
-            <div class="card h-100 feature-card p-4 glass-card border border-secondary rounded-4 shadow">
-                <div class="feature-icon-wrapper mb-3 text-success">
-                    <i class="fa-solid fa-square-poll-vertical fa-2x"></i>
+            <div class="card h-100 feature-card p-4 glass-card border border-info rounded-4 shadow">
+                <div class="feature-icon-wrapper mb-3 text-warning">
+                    <i class="fa-solid fa-microchip fa-2x"></i>
                 </div>
-                <h4 class="text-white fw-bold">3. Zero-Leakage Evaluation</h4>
+                <h4 class="text-white fw-bold">7. Output &amp; 8. PSO Tuning</h4>
                 <p class="text-white-50">
-                    Evaluated across 50/50, 80/20, and 20/80 splits with strict <strong>subject-level</strong> isolation so that windows from the same patient never appear in both train and test sets.
+                    Classifies early disease stages (<strong>CN</strong>, <strong>MCI</strong>, <strong>AD</strong>). Uses <strong>Particle Swarm Optimization (PSO)</strong> to automatically discover optimal learning rate, filters, units, and dropout.
                 </p>
                 <ul class="list-unstyled text-white-50 small mt-auto">
-                    <li><i class="fa-solid fa-check text-success me-2"></i>Balanced Class Weighting</li>
-                    <li><i class="fa-solid fa-check text-success me-2"></i>Accuracy, Precision, Recall, F1</li>
+                    <li><i class="fa-solid fa-check text-warning me-2"></i>3-Stage Early Disease Classification</li>
+                    <li><i class="fa-solid fa-check text-warning me-2"></i>Particle Swarm Swarm Hyperparameter Tuning</li>
                 </ul>
             </div>
         </div>
     </div>
+
     
     <!-- CTA Banner -->
     <div class="cta-banner mt-5 p-5 rounded-4 glass-card text-center border border-info shadow-lg">

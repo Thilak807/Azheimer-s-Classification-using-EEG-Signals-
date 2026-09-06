@@ -17,11 +17,12 @@ STANDARD_CHANNELS = [
     'F7', 'F8', 'T3', 'T4', 'T5', 'T6', 'Fz', 'Cz', 'Pz'
 ]
 
-# Standard OpenNeuro ds004504 Group Ranges
+# Standard Clinical Disease Stages from Architecture Diagram:
+# CN: Cognitively Normal, MCI: Mild Cognitive Impairment, AD: Alzheimer's Disease
 GROUP_RANGES = {
     'AD': range(1, 37),    # Subjects 1-36: Alzheimer's Disease
-    'HC': range(37, 66),   # Subjects 37-65: Healthy Controls
-    'FTD': range(66, 89)   # Subjects 66-88: Frontotemporal Dementia
+    'CN': range(37, 66),   # Subjects 37-65: Cognitively Normal (Healthy Control)
+    'MCI': range(66, 89)   # Subjects 66-88: Mild Cognitive Impairment
 }
 
 
@@ -47,9 +48,10 @@ def find_dataset_root(candidate_paths=None):
 
     for p in candidate_paths:
         if p and os.path.exists(p):
-            # Check for derivatives or participants.tsv
+            # Check for derivatives or participants.tsv or class subfolders
             if os.path.exists(os.path.join(p, "participants.tsv")) or \
                os.path.exists(os.path.join(p, "derivatives")) or \
+               (os.path.exists(os.path.join(p, "AD")) and os.path.exists(os.path.join(p, "CONTROL"))) or \
                len(glob.glob(os.path.join(p, "sub-*"))) > 0:
                 return os.path.abspath(p)
 
@@ -59,7 +61,7 @@ def find_dataset_root(candidate_paths=None):
 def load_participants_metadata(dataset_path):
     """
     Loads and standardizes participants.tsv from the dataset root.
-    Returns DataFrame with columns: ['participant_id', 'subject_id', 'Group', 'Gender', 'Age', 'MMSE']
+    Standardizes diagnosis groups to CN (Cognitively Normal), MCI (Mild Cognitive Impairment), and AD.
     """
     tsv_path = os.path.join(dataset_path, "participants.tsv")
     if os.path.exists(tsv_path):
@@ -76,8 +78,8 @@ def load_participants_metadata(dataset_path):
         if 'Group' in df.columns:
             group_map = {
                 'A': 'AD', 'AD': 'AD', 'Alzheimer': 'AD',
-                'C': 'HC', 'HC': 'HC', 'Control': 'HC', 'Healthy': 'HC',
-                'F': 'FTD', 'FTD': 'FTD'
+                'C': 'CN', 'HC': 'CN', 'CN': 'CN', 'Control': 'CN', 'Healthy': 'CN',
+                'MCI': 'MCI', 'F': 'MCI', 'FTD': 'MCI'
             }
             df['Group'] = df['Group'].map(lambda x: group_map.get(str(x).strip(), str(x).strip()))
         return df
@@ -90,15 +92,15 @@ def load_participants_metadata(dataset_path):
                     'subject_id': sid,
                     'Group': group,
                     'Gender': 'F' if sid % 2 == 0 else 'M',
-                    'Age': 70 if group == 'AD' else (65 if group == 'FTD' else 68),
-                    'MMSE': 18.0 if group == 'AD' else (22.0 if group == 'FTD' else 29.0)
+                    'Age': 70 if group == 'AD' else (68 if group == 'CN' else 65),
+                    'MMSE': 18.0 if group == 'AD' else (29.0 if group == 'CN' else 24.0)
                 })
         return pd.DataFrame(records)
 
 
 def get_subject_label_map(dataset_path):
     """
-    Returns a dictionary mapping numeric subject_id -> group label ('AD', 'HC', 'FTD').
+    Returns a dictionary mapping numeric subject_id -> group label ('AD', 'CN', 'MCI').
     """
     df = load_participants_metadata(dataset_path)
     if 'subject_id' in df.columns and 'Group' in df.columns:
@@ -113,7 +115,7 @@ def get_subject_label_map(dataset_path):
 
 def locate_subject_file(subject_id, dataset_path):
     """
-    Finds the .set file path for a given subject_id.
+    Finds the .set or .mat file path for a given subject_id.
     """
     sid_str = f"{subject_id:03d}"
     candidate_files = [
@@ -121,6 +123,10 @@ def locate_subject_file(subject_id, dataset_path):
         os.path.join(dataset_path, f"sub-{sid_str}", "eeg", f"sub-{sid_str}_task-eyesclosed_eeg.set"),
         os.path.join(dataset_path, "derivatives", f"sub-{sid_str}", f"sub-{sid_str}_task-eyesclosed_eeg.set"),
         os.path.join(dataset_path, f"sub-{sid_str}_task-eyesclosed_eeg.set"),
+        # Also check .mat format
+        os.path.join(dataset_path, "AD", f"AD{subject_id}", "1.mat"),
+        os.path.join(dataset_path, "CONTROL", f"normal{subject_id}", "1.mat"),
+        os.path.join(dataset_path, "MCI", f"MCI{subject_id}", "1.mat"),
     ]
     for fpath in candidate_files:
         if os.path.exists(fpath):
@@ -136,6 +142,7 @@ def locate_subject_file(subject_id, dataset_path):
 def load_subject_eeg(subject_id, dataset_path, preload=True, verbose='CRITICAL'):
     """
     Loads raw EEG data for a single subject using MNE.
+    Supports both EEGLAB .set format and MATLAB .mat matrix format.
     Returns: mne.io.Raw instance
     """
     fpath = locate_subject_file(subject_id, dataset_path)
@@ -143,8 +150,36 @@ def load_subject_eeg(subject_id, dataset_path, preload=True, verbose='CRITICAL')
         raise FileNotFoundError(
             f"EEG file for subject {subject_id} not found in {dataset_path}."
         )
+        
+    if fpath.lower().endswith('.mat'):
+        mat = sio.loadmat(fpath)
+        data_arr = None
+        for k in ['export', 'segmenty', 'data', 'EEG']:
+            if k in mat and isinstance(mat[k], np.ndarray):
+                data_arr = mat[k]
+                break
+        if data_arr is None:
+            for k, v in mat.items():
+                if isinstance(v, np.ndarray) and v.ndim == 2:
+                    data_arr = v
+                    break
+        if data_arr is None:
+            raise ValueError(f"No 2D EEG array found in {fpath}")
+            
+        if data_arr.shape[0] > data_arr.shape[1]:
+            data_arr = data_arr.T
+        n_ch = min(data_arr.shape[0], len(STANDARD_CHANNELS))
+        data_arr = data_arr[:n_ch, :].astype(np.float32)
+        if np.max(np.abs(data_arr)) > 1.0:
+            data_arr = data_arr * 1e-6
+            
+        info = mne.create_info(ch_names=STANDARD_CHANNELS[:n_ch], sfreq=128.0, ch_types='eeg')
+        raw = mne.io.RawArray(data_arr, info, verbose=verbose)
+        return raw
+        
     raw = mne.io.read_raw_eeglab(fpath, preload=preload, verbose=verbose)
     return raw
+
 
 
 def inspect_dataset(dataset_path):

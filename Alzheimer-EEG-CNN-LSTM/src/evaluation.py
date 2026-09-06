@@ -79,6 +79,12 @@ def evaluate_experiment(model, X_test, y_test,
     plt.close()
     print(f"  Saved confusion matrix heatmap to: {cm_path}")
     
+    # Also sync to static directory for web dashboard
+    static_img_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "static", "images", "results")
+    if os.path.exists(static_img_dir):
+        import shutil
+        shutil.copy(cm_path, os.path.join(static_img_dir, os.path.basename(cm_path)))
+    
     # 4. Training History Curves Plot & Save
     if history is not None:
         h = history.history if hasattr(history, 'history') else history
@@ -114,6 +120,9 @@ def evaluate_experiment(model, X_test, y_test,
         plt.savefig(hist_path, dpi=300)
         plt.close()
         print(f"  Saved training history curves to: {hist_path}")
+        if os.path.exists(static_img_dir):
+            import shutil
+            shutil.copy(hist_path, os.path.join(static_img_dir, os.path.basename(hist_path)))
         
     metrics_dict = {
         'Train/Test': experiment_name.replace('_', '/'),

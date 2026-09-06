@@ -28,11 +28,11 @@
                         </h1>
                         <p class="text-white-50 mb-4">
                             {% if result.predicted_class == 'AD' %}
-                                Consistent with significant Delta/Theta power increase (EEG slowing) and Alpha wave attenuation.
-                            {% elif result.predicted_class == 'HC' %}
-                                Preserved dominant posterior alpha rhythm with standard power distribution.
+                                Consistent with significant Delta/Theta power increase (EEG slowing) and Alpha wave attenuation characteristic of Alzheimer's Disease.
+                            {% elif result.predicted_class in ['CN', 'HC'] %}
+                                Preserved dominant posterior alpha rhythm with normal spectral distribution characteristic of Cognitively Normal individuals.
                             {% else %}
-                                Observed localized anterior and frontotemporal frequency shifts.
+                                Transitional frequency shifts with elevated theta and subtle alpha decrease characteristic of Mild Cognitive Impairment (MCI).
                             {% endif %}
                         </p>
 
@@ -49,59 +49,66 @@
                         </div>
                     </div>
 
-                    <!-- Multi-Class Diagnostic Probabilities -->
+                    <!-- Multi-Class Diagnostic Probabilities (CN, MCI, AD) -->
                     <div class="mb-4">
-                        <h5 class="text-white fw-bold mb-3"><i class="fa-solid fa-chart-pie text-info me-2"></i> Multi-Class Diagnostic Probabilities:</h5>
+                        <h5 class="text-white fw-bold mb-3"><i class="fa-solid fa-chart-pie text-info me-2"></i> Disease Stage Classification Probabilities (Architecture Output 7):</h5>
                         <div class="row g-3">
                             <!-- AD -->
                             <div class="col-md-4">
                                 <div class="p-3 rounded-3 bg-dark border border-secondary">
                                     <div class="d-flex justify-content-between align-items-center mb-2">
                                         <span class="text-danger fw-bold"><i class="fa-solid fa-circle text-danger me-1"></i> Alzheimer's (AD)</span>
-                                        <strong class="text-white">{{ result.class_probabilities.AD }}%</strong>
+                                        <strong class="text-white">{{ result.class_probabilities.get('AD', 0) }}%</strong>
                                     </div>
                                     <div class="progress" style="height: 10px; background: rgba(255,255,255,0.08);">
-                                        <div class="progress-bar bg-danger prob-bar-fill" style="width: {{ result.class_probabilities.AD }}%;"></div>
+                                        <div class="progress-bar bg-danger prob-bar-fill" style="width: {{ result.class_probabilities.get('AD', 0) }}%;"></div>
                                     </div>
                                 </div>
                             </div>
-                            <!-- HC -->
+                            <!-- CN -->
                             <div class="col-md-4">
                                 <div class="p-3 rounded-3 bg-dark border border-secondary">
                                     <div class="d-flex justify-content-between align-items-center mb-2">
-                                        <span class="text-success fw-bold"><i class="fa-solid fa-circle text-success me-1"></i> Healthy (HC)</span>
-                                        <strong class="text-white">{{ result.class_probabilities.HC }}%</strong>
+                                        <span class="text-success fw-bold"><i class="fa-solid fa-circle text-success me-1"></i> Cognitively Normal (CN)</span>
+                                        <strong class="text-white">{{ result.class_probabilities.get('CN', result.class_probabilities.get('HC', 0)) }}%</strong>
                                     </div>
                                     <div class="progress" style="height: 10px; background: rgba(255,255,255,0.08);">
-                                        <div class="progress-bar bg-success prob-bar-fill" style="width: {{ result.class_probabilities.HC }}%;"></div>
+                                        <div class="progress-bar bg-success prob-bar-fill" style="width: {{ result.class_probabilities.get('CN', result.class_probabilities.get('HC', 0)) }}%;"></div>
                                     </div>
                                 </div>
                             </div>
-                            <!-- FTD -->
+                            <!-- MCI -->
                             <div class="col-md-4">
                                 <div class="p-3 rounded-3 bg-dark border border-secondary">
                                     <div class="d-flex justify-content-between align-items-center mb-2">
-                                        <span class="text-warning fw-bold"><i class="fa-solid fa-circle text-warning me-1"></i> Dementia (FTD)</span>
-                                        <strong class="text-white">{{ result.class_probabilities.FTD }}%</strong>
+                                        <span class="text-warning fw-bold"><i class="fa-solid fa-circle text-warning me-1"></i> Mild Cognitive Impairment (MCI)</span>
+                                        <strong class="text-white">{{ result.class_probabilities.get('MCI', result.class_probabilities.get('FTD', 0)) }}%</strong>
                                     </div>
                                     <div class="progress" style="height: 10px; background: rgba(255,255,255,0.08);">
-                                        <div class="progress-bar bg-warning prob-bar-fill" style="width: {{ result.class_probabilities.FTD }}%;"></div>
+                                        <div class="progress-bar bg-warning prob-bar-fill" style="width: {{ result.class_probabilities.get('MCI', result.class_probabilities.get('FTD', 0)) }}%;"></div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
+
                     <!-- EEG Waveform Visualizer -->
                     <div class="mb-4">
-                        <h5 class="text-white fw-bold mb-3"><i class="fa-solid fa-wave-square text-info me-2"></i> EEG Signal Waveform Visualizer:</h5>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h5 class="text-white fw-bold mb-0">
+                                <i class="fa-solid fa-wave-square text-info me-2"></i> 2. EEG Preprocessing Pipeline Stages:
+                            </h5>
+                            <span class="badge bg-info-subtle text-info border border-info">Bandpass + Notch + ICA + Normalization</span>
+                        </div>
                         <div class="p-3 rounded-3 bg-dark border border-secondary text-center">
-                            <img src="{{ url_for('static', filename=result.signal_plot_url) }}" alt="EEG Waveform Plot" class="img-fluid rounded-3 shadow mb-2" style="max-height: 400px; width: 100%; object-fit: contain;">
+                            <img src="{{ url_for('static', filename=result.signal_plot_url) }}" alt="EEG Multi-Stage Preprocessing Plot" class="img-fluid rounded-3 shadow mb-2" style="max-height: 520px; width: 100%; object-fit: contain;">
                             <p class="text-white-50 small mb-0">
-                                Continuous microvolt voltage vs. 0.5–45 Hz bandpass filtered and Z-score normalized input tensor.
+                                Full 4-Stage Preprocessing Pipeline: Raw EEG Voltage &rarr; 0.5–45 Hz Bandpass &amp; 50 Hz Notch Filter &rarr; Artifact Removal via ICA (Blink/Muscle Elimination) &rarr; 5s Epoch Window with Z-Score Normalization.
                             </p>
                         </div>
                     </div>
+
 
                     <!-- Recording Metadata Card -->
                     <div class="row g-3 mb-4">
