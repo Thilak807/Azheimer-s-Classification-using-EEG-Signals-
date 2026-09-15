@@ -53,9 +53,9 @@ def run_1000_sample_test(model_name="80_20", target_samples=1000):
 
     total = len(y_test)
     print("\n[+] Total Evaluated Samples:", total)
-    print(f"    - AD  (Alzheimer's Disease)      : {counts.get('AD', 0)}")
-    print(f"    - HC  (Healthy Control)          : {counts.get('HC', 0)}")
-    print(f"    - FTD (Frontotemporal Dementia)  : {counts.get('FTD', 0)}")
+    print(f"    - AD  (Alzheimer's Disease)          : {counts.get('AD', 0)}")
+    print(f"    - CN  (Cognitively Normal Control)   : {counts.get('CN', 0)}")
+    print(f"    - MCI (Mild Cognitive Impairment)    : {counts.get('MCI', 0)}")
 
     print("\n[*] Running Inference with Hybrid CNN-LSTM Model...")
     model = get_model(model_name)
@@ -71,7 +71,7 @@ def run_1000_sample_test(model_name="80_20", target_samples=1000):
     print("=" * 70)
     print(f"Overall Accuracy  : {acc * 100:.2f}% (Precision: {prec * 100:.2f}%, Recall: {rec * 100:.2f}%, F1: {f1 * 100:.2f}%)")
     print("-" * 70)
-    print(classification_report(y_test, y_pred, target_names=['AD', 'HC', 'FTD'], digits=4, zero_division=0))
+    print(classification_report(y_test, y_pred, target_names=['AD', 'CN', 'MCI'], digits=4, zero_division=0))
     print("-" * 70)
     print("Confusion Matrix:")
     print(confusion_matrix(y_test, y_pred))

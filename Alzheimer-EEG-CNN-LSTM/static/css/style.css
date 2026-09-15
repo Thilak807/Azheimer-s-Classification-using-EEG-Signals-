@@ -293,6 +293,11 @@ body {
     margin: 0 auto;
 }
 
+.radial-progress-sm {
+    width: 130px;
+    height: 130px;
+}
+
 .radial-progress-svg {
     transform: rotate(-90deg);
     width: 100%;
@@ -329,13 +334,15 @@ body {
     box-shadow: 0 0 35px rgba(239, 68, 68, 0.35);
 }
 
-.glow-badge-hc {
+.glow-badge-hc,
+.glow-badge-cn {
     background: radial-gradient(circle, rgba(16, 185, 129, 0.18) 0%, rgba(15, 23, 42, 0.9) 100%);
     border: 2px solid #10b981 !important;
     box-shadow: 0 0 35px rgba(16, 185, 129, 0.35);
 }
 
-.glow-badge-ftd {
+.glow-badge-ftd,
+.glow-badge-mci {
     background: radial-gradient(circle, rgba(245, 158, 11, 0.18) 0%, rgba(15, 23, 42, 0.9) 100%);
     border: 2px solid #f59e0b !important;
     box-shadow: 0 0 35px rgba(245, 158, 11, 0.35);

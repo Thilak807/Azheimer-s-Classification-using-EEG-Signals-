@@ -141,43 +141,52 @@
                         </div>
                     </div>
 
-                    <!-- Multi-Class Diagnostic Probabilities -->
+                    <!-- Multi-Class Diagnostic Probabilities (CN → MCI → AD) -->
                     <div class="mb-4">
                         <h5 class="text-white fw-bold mb-3"><i class="fa-solid fa-chart-pie text-info me-2"></i> Multi-Class Diagnostic Probabilities:</h5>
                         <div class="row g-3">
-                            <!-- AD -->
+                            <!-- 1. Normal (CN) -->
                             <div class="col-md-4">
-                                <div class="p-3 rounded-3 bg-dark border border-secondary">
-                                    <div class="d-flex justify-content-between align-items-center mb-2">
-                                        <span class="text-danger fw-bold"><i class="fa-solid fa-circle text-danger me-1"></i> Alzheimer's (AD)</span>
-                                        <strong class="text-white" id="probAD">0%</strong>
-                                    </div>
-                                    <div class="progress" style="height: 10px; background: rgba(255,255,255,0.08);">
-                                        <div class="progress-bar bg-danger prob-bar-fill" id="probBarAD" style="width: 0%;"></div>
+                                <div class="p-3 rounded-3 bg-dark border border-secondary text-center h-100">
+                                    <span class="text-success fw-bold d-block mb-2"><i class="fa-solid fa-circle text-success me-1"></i> Normal (CN)</span>
+                                    <div class="radial-progress-wrapper radial-progress-sm">
+                                        <svg class="radial-progress-svg" viewBox="0 0 160 160">
+                                            <circle class="radial-bg" cx="80" cy="80" r="70"></circle>
+                                            <circle class="radial-fill" id="radialCN" cx="80" cy="80" r="70" style="stroke: #10b981;"></circle>
+                                        </svg>
+                                        <div class="radial-center-text">
+                                            <div class="fs-5 fw-bold text-white" id="probCN">0%</div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                            <!-- CN -->
+                            <!-- 2. Impairment (MCI) -->
                             <div class="col-md-4">
-                                <div class="p-3 rounded-3 bg-dark border border-secondary">
-                                    <div class="d-flex justify-content-between align-items-center mb-2">
-                                        <span class="text-success fw-bold"><i class="fa-solid fa-circle text-success me-1"></i> Normal (CN)</span>
-                                        <strong class="text-white" id="probHC">0%</strong>
-                                    </div>
-                                    <div class="progress" style="height: 10px; background: rgba(255,255,255,0.08);">
-                                        <div class="progress-bar bg-success prob-bar-fill" id="probBarHC" style="width: 0%;"></div>
+                                <div class="p-3 rounded-3 bg-dark border border-secondary text-center h-100">
+                                    <span class="text-warning fw-bold d-block mb-2"><i class="fa-solid fa-circle text-warning me-1"></i> Impairment (MCI)</span>
+                                    <div class="radial-progress-wrapper radial-progress-sm">
+                                        <svg class="radial-progress-svg" viewBox="0 0 160 160">
+                                            <circle class="radial-bg" cx="80" cy="80" r="70"></circle>
+                                            <circle class="radial-fill" id="radialMCI" cx="80" cy="80" r="70" style="stroke: #f59e0b;"></circle>
+                                        </svg>
+                                        <div class="radial-center-text">
+                                            <div class="fs-5 fw-bold text-white" id="probMCI">0%</div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                            <!-- MCI -->
+                            <!-- 3. Alzheimer's (AD) -->
                             <div class="col-md-4">
-                                <div class="p-3 rounded-3 bg-dark border border-secondary">
-                                    <div class="d-flex justify-content-between align-items-center mb-2">
-                                        <span class="text-warning fw-bold"><i class="fa-solid fa-circle text-warning me-1"></i> Impairment (MCI)</span>
-                                        <strong class="text-white" id="probFTD">0%</strong>
-                                    </div>
-                                    <div class="progress" style="height: 10px; background: rgba(255,255,255,0.08);">
-                                        <div class="progress-bar bg-warning prob-bar-fill" id="probBarFTD" style="width: 0%;"></div>
+                                <div class="p-3 rounded-3 bg-dark border border-secondary text-center h-100">
+                                    <span class="text-danger fw-bold d-block mb-2"><i class="fa-solid fa-circle text-danger me-1"></i> Alzheimer's (AD)</span>
+                                    <div class="radial-progress-wrapper radial-progress-sm">
+                                        <svg class="radial-progress-svg" viewBox="0 0 160 160">
+                                            <circle class="radial-bg" cx="80" cy="80" r="70"></circle>
+                                            <circle class="radial-fill" id="radialAD" cx="80" cy="80" r="70" style="stroke: #ef4444;"></circle>
+                                        </svg>
+                                        <div class="radial-center-text">
+                                            <div class="fs-5 fw-bold text-white" id="probAD">0%</div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -444,35 +453,31 @@
         banner.className = `p-4 p-md-5 rounded-4 mb-4 text-center glow-badge-${data.predicted_class.toLowerCase()}`;
         document.getElementById('resDiagnosisTitle').style.color = data.class_color;
 
-        // Circular Gauge
-        const circle = document.getElementById('radialProgressCircle');
-        const circumference = 2 * Math.PI * 70; // ~439.82
-        circle.style.stroke = data.class_color;
-        circle.style.strokeDasharray = circumference;
+        const circumference = 2 * Math.PI * 70;
+        const setCircle = (circle, percent, color) => {
+            if (!circle) return;
+            if (color) circle.style.stroke = color;
+            circle.style.strokeDasharray = circumference;
+            const offset = circumference - ((parseFloat(percent) || 0) / 100) * circumference;
+            setTimeout(() => {
+                circle.style.strokeDashoffset = offset;
+            }, 100);
+        };
 
         const targetConf = data.confidence;
-        const offset = circumference - (targetConf / 100) * circumference;
-        setTimeout(() => {
-            circle.style.strokeDashoffset = offset;
-        }, 100);
-
-        // Counter Animation
+        setCircle(document.getElementById('radialProgressCircle'), targetConf, data.class_color);
         animateValue('confidenceValue', 0, targetConf, 1200, '%');
 
-        // Probabilities (CN, MCI, AD)
-        const adProb = data.class_probabilities.AD || 0;
         const cnProb = data.class_probabilities.CN || data.class_probabilities.HC || 0;
         const mciProb = data.class_probabilities.MCI || data.class_probabilities.FTD || 0;
+        const adProb = data.class_probabilities.AD || 0;
 
-        document.getElementById('probAD').innerText = adProb + '%';
-        document.getElementById('probHC').innerText = cnProb + '%';
-        document.getElementById('probFTD').innerText = mciProb + '%';
-
-        setTimeout(() => {
-            document.getElementById('probBarAD').style.width = adProb + '%';
-            document.getElementById('probBarHC').style.width = cnProb + '%';
-            document.getElementById('probBarFTD').style.width = mciProb + '%';
-        }, 200);
+        setCircle(document.getElementById('radialCN'), cnProb, '#10b981');
+        setCircle(document.getElementById('radialMCI'), mciProb, '#f59e0b');
+        setCircle(document.getElementById('radialAD'), adProb, '#ef4444');
+        animateValue('probCN', 0, cnProb, 1200, '%');
+        animateValue('probMCI', 0, mciProb, 1200, '%');
+        animateValue('probAD', 0, adProb, 1200, '%');
 
 
         // Plot and Metadata

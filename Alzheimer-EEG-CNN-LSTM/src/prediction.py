@@ -133,18 +133,11 @@ def parse_and_load_eeg_file(file_path):
         info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types='eeg')
         raw = mne.io.RawArray(data_arr, info, verbose='CRITICAL')
     elif ext == 'mat':
-        mat = sio.loadmat(file_path)
-        data_arr = None
-        for k, v in mat.items():
-            if isinstance(v, np.ndarray) and v.ndim == 2 and (v.shape[0] in [19, 28] or v.shape[1] in [19, 28]):
-                data_arr = v if v.shape[0] < v.shape[1] else v.T
-                break
-        if data_arr is None:
-            raise ValueError("No valid EEG 2D matrix found in .mat file.")
-            
-        n_ch = min(data_arr.shape[0], len(STANDARD_CHANNELS))
-        data_arr = data_arr[:n_ch, :] * 1e-6
-        info = mne.create_info(ch_names=STANDARD_CHANNELS[:n_ch], sfreq=128.0, ch_types='eeg')
+        from .data_loader import _load_single_mat_array
+        data_arr = _load_single_mat_array(file_path)
+        if np.max(np.abs(data_arr)) > 1.0:
+            data_arr = data_arr * 1e-6
+        info = mne.create_info(ch_names=STANDARD_CHANNELS, sfreq=128.0, ch_types='eeg')
         raw = mne.io.RawArray(data_arr, info, verbose='CRITICAL')
     else:
         raise ValueError(f"Unsupported file format '.{ext}'. Supported formats: .set, .csv, .tsv, .mat")
@@ -321,45 +314,50 @@ def create_sample_eeg_files():
     - AD: Alzheimer's Disease
     - CN: Cognitively Normal (Healthy Control)
     - MCI: Mild Cognitive Impairment
+    Extracts genuine clinical EEG signals from the dataset when present.
     """
+    from .data_loader import _load_single_mat_array
     samples_dir = Config.SAMPLES_DIR
+    dataset_dir = Config.DATASET_DIR
     os.makedirs(samples_dir, exist_ok=True)
+    
+    sample_configs = [
+        ('sample_AD_Alzheimer_subject.csv', 'AD', os.path.join(dataset_dir, 'AD', 'AD1', '1.mat')),
+        ('sample_CN_Cognitively_Normal.csv', 'CN', os.path.join(dataset_dir, 'CONTROL', '10057fir.mat')),
+        ('sample_MCI_Mild_Cognitive_Impairment.csv', 'MCI', os.path.join(dataset_dir, 'MCI', 'MCI5', '1.mat')),
+        ('sample_HC_Healthy_subject.csv', 'CN', os.path.join(dataset_dir, 'CONTROL', '10188fir.mat')),
+        ('sample_FTD_Dementia_subject.csv', 'MCI', os.path.join(dataset_dir, 'MCI', 'MCI6', '1.mat'))
+    ]
     
     duration = 30.0
     sfreq = 128.0
     n_samples = int(duration * sfreq)
-    t = np.linspace(0, duration, n_samples)
     
-    sample_configs = [
-        ('sample_AD_Alzheimer_subject.csv', 'AD'),
-        ('sample_CN_Cognitively_Normal.csv', 'CN'),
-        ('sample_MCI_Mild_Cognitive_Impairment.csv', 'MCI'),
-        ('sample_HC_Healthy_subject.csv', 'CN'),
-        ('sample_FTD_Dementia_subject.csv', 'MCI')
-    ]
-    
-    for filename, group in sample_configs:
+    for filename, group, mat_path in sample_configs:
         filepath = os.path.join(samples_dir, filename)
         if os.path.exists(filepath):
             continue
             
-        data_dict = {}
-        for ch in STANDARD_CHANNELS:
-            noise = np.random.normal(0, 2.0, n_samples)
-            if group == 'AD':
-                # AD: slowing with dominant delta and theta
-                sig = 14.0 * np.sin(2 * np.pi * 3.0 * t) + 16.0 * np.sin(2 * np.pi * 5.5 * t) + 2.5 * np.sin(2 * np.pi * 10.0 * t) + noise
-            elif group == 'CN':
-                # CN: robust posterior alpha waves (10 Hz)
-                sig = 3.0 * np.sin(2 * np.pi * 2.5 * t) + 4.0 * np.sin(2 * np.pi * 5.0 * t) + 19.0 * np.sin(2 * np.pi * 10.2 * t) + noise
-            else: # MCI
-                # MCI: transitional slowing with elevated theta and diminished alpha
-                sig = 6.0 * np.sin(2 * np.pi * 2.8 * t) + 13.0 * np.sin(2 * np.pi * 6.5 * t) + 8.0 * np.sin(2 * np.pi * 9.5 * t) + noise
-            data_dict[ch] = np.round(sig, 3)
-            
-        df = pd.DataFrame(data_dict)
-        df.to_csv(filepath, index=False)
-        print(f"Created sample EEG: {filepath}")
+        if os.path.exists(mat_path):
+            arr = _load_single_mat_array(mat_path)[:, :n_samples]
+            df = pd.DataFrame(arr.T, columns=STANDARD_CHANNELS)
+            df.to_csv(filepath, index=False)
+            print(f"Created real sample EEG from {mat_path}: {filepath}")
+        else:
+            t = np.linspace(0, duration, n_samples)
+            data_dict = {}
+            for ch in STANDARD_CHANNELS:
+                noise = np.random.normal(0, 2.0, n_samples)
+                if group == 'AD':
+                    sig = 14.0 * np.sin(2 * np.pi * 3.0 * t) + 16.0 * np.sin(2 * np.pi * 5.5 * t) + noise
+                elif group == 'CN':
+                    sig = 3.0 * np.sin(2 * np.pi * 2.5 * t) + 19.0 * np.sin(2 * np.pi * 10.2 * t) + noise
+                else:
+                    sig = 6.0 * np.sin(2 * np.pi * 2.8 * t) + 13.0 * np.sin(2 * np.pi * 6.5 * t) + noise
+                data_dict[ch] = np.round(sig, 3)
+            df = pd.DataFrame(data_dict)
+            df.to_csv(filepath, index=False)
+            print(f"Created sample EEG: {filepath}")
 
 create_sample_eeg_files()
 

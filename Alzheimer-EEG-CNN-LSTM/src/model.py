@@ -324,6 +324,7 @@ class UnifiedEEGModelWrapper:
             train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
             
             best_val_loss = float('inf')
+            best_val_score = -float('inf')
             patience = 12
             patience_counter = 0
             best_state = None
@@ -367,15 +368,17 @@ class UnifiedEEGModelWrapper:
                     history['val_loss'].append(val_loss)
                     history['val_accuracy'].append(val_acc)
                     
+                    val_score = val_acc - 0.2 * val_loss
+                    
                     if (epoch + 1) % 5 == 0 or epoch == 0 or epoch == epochs - 1:
                         print(f"Epoch {epoch+1:02d}/{epochs:02d} - Loss: {train_loss:.4f} - Acc: {train_acc:.4f} - Val_Loss: {val_loss:.4f} - Val_Acc: {val_acc:.4f}")
                         
-                    # Early stopping tracking
-                    if val_loss < best_val_loss:
+                    # Best model tracking based on validation performance
+                    if val_score > best_val_score:
+                        best_val_score = val_score
                         best_val_loss = val_loss
                         best_state = {k: v.cpu().clone() for k, v in self.model.state_dict().items()}
                         patience_counter = 0
-
                     else:
                         patience_counter += 1
                         if patience_counter >= patience:

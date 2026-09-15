@@ -73,7 +73,7 @@ def load_and_preprocess_all_subjects(dataset_path, target_sfreq=128.0, max_subje
     label_map = get_subject_label_map(dataset_path)
     subject_records = []
     
-    available_sids = [sid for sid in sorted(label_map.keys()) if locate_subject_file(sid, dataset_path) is not None]
+    available_sids = list(label_map.keys())
     if max_subjects is not None and max_subjects > 0:
         available_sids = available_sids[:max_subjects]
         
@@ -87,15 +87,15 @@ def load_and_preprocess_all_subjects(dataset_path, target_sfreq=128.0, max_subje
             subject_records.append({
                 'subject_id': sid,
                 'group': group,
-                'label_idx': CLASS_TO_IDX[group],
+                'label_idx': CLASS_TO_IDX.get(group, 1),
                 'data': data,
                 'sfreq': actual_sfreq,
                 'channels': ch_names
             })
-            if verbose or (i + 1) % 15 == 0 or (i + 1) == len(available_sids):
-                print(f"  Processed {i+1}/{len(available_sids)} subjects (sub-{sid:03d} -> {group}).", flush=True)
+            if verbose or (i + 1) % 20 == 0 or (i + 1) == len(available_sids):
+                print(f"  Processed {i+1}/{len(available_sids)} subjects ({sid} -> {group}).", flush=True)
         except Exception as e:
-            print(f"  Warning: skipping sub-{sid:03d} due to error: {e}", flush=True)
+            print(f"  Warning: skipping {sid} due to error: {e}", flush=True)
             
     if max_subjects is None and len(subject_records) > 0:
         try:
@@ -195,12 +195,16 @@ def create_subject_stratified_split(subject_records, test_size=0.5, random_state
         X_list, y_list, sids_list = [], [], []
         counts = {'AD': 0, 'CN': 0, 'MCI': 0}
         for rec in records:
+            grp = rec['group']
+            # For MCI (minority class), use higher overlap (80%) and no restrictive cap to ensure balanced representation
+            rec_overlap = 0.80 if grp == 'MCI' else overlap
+            max_wins = None if grp == 'MCI' else (desired_per_sub * 2 if desired_per_sub else None)
             wins = slice_into_windows(
                 rec['data'], 
                 sfreq=sfreq, 
                 window_sec=window_sec, 
-                overlap=overlap, 
-                max_windows_per_subject=desired_per_sub
+                overlap=rec_overlap, 
+                max_windows_per_subject=max_wins
             )
             if len(wins) > 0:
                 X_list.append(wins)

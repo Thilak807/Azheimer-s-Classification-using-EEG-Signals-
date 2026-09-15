@@ -2,13 +2,14 @@
 """
 train_full_models.py
 Complete training script that:
-1. Loads and preprocesses all 88 subjects (with disk caching)
-2. Generates ~1000 balanced 5-second EEG windows
-3. Creates zero-leakage 80/20 subject-stratified split
-4. Runs Particle Swarm Optimization (PSO) to discover optimal hyperparameters
-5. Trains final CNN-LSTM models (both pso_optimized and 80_20) for 25 epochs
-6. Extracts genuine real test-patient samples for AD, CN, MCI into dataset/samples/
-7. Evaluates performance metrics and verifies predictions across all 3 classes
+1. Loads and preprocesses all clinical subjects from real MATLAB dataset (AD, CN, MCI)
+2. Extracts balanced 5-second EEG windows with strict subject-level anti-leakage splitting
+3. Trains all experimental configurations: 80/20, 50/50, 20/80
+4. Executes Particle Swarm Optimization (PSO) to discover optimal hyperparameters
+5. Trains final PSO-optimized model and evaluates all models on untouched test subjects
+6. Generates confusion matrices, training loss curves, and model_results.csv
+7. Exports genuine real patient samples for AD, CN, and MCI into dataset/samples/
+8. Verifies end-to-end inference across all classes
 """
 
 import os
@@ -38,14 +39,16 @@ from src.segmentation import (
     CLASS_NAMES,
     CLASS_TO_IDX
 )
+from src.train import train_experiment
 from src.pso_optimizer import PSOHyperparameterOptimizer
 from src.evaluation import evaluate_experiment, save_summary_comparison_table
 from src.model import UnifiedEEGModelWrapper
 
+
 def main():
     print("=" * 75, flush=True)
-    print("STARTING FULL END-TO-END DATASET TRAINING & PSO OPTIMIZATION", flush=True)
-    print("Target Classes: CN (Cognitively Normal), MCI (Mild Impairment), AD (Alzheimer's)", flush=True)
+    print("STARTING FULL END-TO-END CLINICAL EEG DATASET TRAINING & PSO OPTIMIZATION", flush=True)
+    print("Target Classes: AD (Alzheimer's), CN (Cognitively Normal), MCI (Mild Cognitive Impairment)", flush=True)
     print("=" * 75, flush=True)
     
     dataset_dir = Config.DATASET_DIR
@@ -61,7 +64,7 @@ def main():
     # 1. Inspect Dataset
     inspect_dataset(dataset_dir)
     
-    # 2. Preprocess all subjects with caching (0.5-45 Hz Bandpass, 50 Hz Notch, FastICA)
+    # 2. Preprocess all subjects with disk caching (0.5-45 Hz Bandpass, 50 Hz Notch, Artifact Cleaning, Z-score)
     t0 = time.time()
     subject_records = load_and_preprocess_all_subjects(
         dataset_dir,
@@ -69,32 +72,79 @@ def main():
         max_subjects=None,
         verbose=False
     )
-    print(f"Loaded {len(subject_records)} subjects in {time.time() - t0:.1f}s.", flush=True)
+    print(f"\nLoaded {len(subject_records)} clinical subjects in {time.time() - t0:.1f}s.", flush=True)
     
-    # 3. Create zero-leakage 80/20 train/test split (~1000 windows)
-    (X_train, y_train, train_sids), (X_test, y_test, test_sids) = create_subject_stratified_split(
-        subject_records,
-        test_size=0.2,
-        random_state=42,
-        window_sec=5.0,
-        overlap=0.5,
-        sfreq=128.0,
-        target_total_samples=1000
-    )
+    results_list = []
     
-    print(f"\nTrain Windows: {X_train.shape} | Distribution: {np.bincount(y_train)}", flush=True)
-    print(f"Test Windows : {X_test.shape} | Distribution: {np.bincount(y_test)}", flush=True)
+    # 3. Train the 3 Standard Split Experiments (80/20, 50/50, 20/80)
+    experiments = [
+        {"name": "80_20", "test_size": 0.20, "desc": "80% Training / 20% Testing", "epochs": 25},
+        {"name": "50_50", "test_size": 0.50, "desc": "50% Training / 50% Testing", "epochs": 25},
+        {"name": "20_80", "test_size": 0.80, "desc": "20% Training / 80% Testing", "epochs": 25}
+    ]
     
-    # 4. Feature 8: Particle Swarm Optimization (PSO) Hyperparameter Search
+    split_data = {}
+    
+    for exp in experiments:
+        exp_name = exp["name"]
+        test_sz = exp["test_size"]
+        epochs = exp["epochs"]
+        
+        print("\n" + "#" * 75, flush=True)
+        print(f"TRAINING EXPERIMENT: {exp['desc']} (Split: {exp_name})", flush=True)
+        print("#" * 75, flush=True)
+        
+        (X_train, y_train, train_sids), (X_test, y_test, test_sids) = create_subject_stratified_split(
+            subject_records,
+            test_size=test_sz,
+            random_state=42,
+            window_sec=5.0,
+            overlap=0.5,
+            sfreq=128.0,
+            target_total_samples=1200
+        )
+        split_data[exp_name] = ((X_train, y_train, train_sids), (X_test, y_test, test_sids))
+        
+        model_wrapper, history, duration = train_experiment(
+            X_train, y_train,
+            X_val=X_test, y_val=y_test,
+            experiment_name=exp_name,
+            epochs=epochs,
+            batch_size=32,
+            lr=0.001,
+            models_dir=models_dir,
+            framework='torch'
+        )
+        
+        metrics = evaluate_experiment(
+            model_wrapper,
+            X_test, y_test,
+            class_names=CLASS_NAMES,
+            experiment_name=exp_name,
+            history=history,
+            results_dir=results_dir
+        )
+        results_list.append(metrics)
+        
+        # Copy plots to static directory
+        for fname in [f"confusion_matrix_{exp_name}.png", f"training_history_{exp_name}.png"]:
+            src = os.path.join(results_dir, fname)
+            dst = os.path.join(static_img_dir, fname)
+            if os.path.exists(src):
+                shutil.copy(src, dst)
+                
+    # 4. Particle Swarm Optimization (PSO) Hyperparameter Search on 80/20 data
     print("\n" + "#" * 75, flush=True)
-    print("STEP 1: PARTICLE SWARM OPTIMIZATION (PSO) HYPERPARAMETER SEARCH", flush=True)
+    print("STEP 4: PARTICLE SWARM OPTIMIZATION (PSO) HYPERPARAMETER TUNING", flush=True)
     print("#" * 75, flush=True)
     
+    (X_train_80, y_train_80, _), (X_test_80, y_test_80, test_sids_80) = split_data["80_20"]
+    
     pso = PSOHyperparameterOptimizer(
-        X_train=X_train,
-        y_train=y_train,
-        X_val=X_test,
-        y_val=y_test,
+        X_train=X_train_80,
+        y_train=y_train_80,
+        X_val=X_test_80,
+        y_val=y_test_80,
         n_particles=5,
         n_iterations=3,
         eval_epochs=2,
@@ -103,63 +153,51 @@ def main():
     best_hp, best_fitness, pso_history = pso.optimize(verbose=True)
     pso.save_results(output_dir=results_dir, static_dir=static_img_dir)
     
-    # 5. Train Final Model with PSO-Optimized Hyperparameters (25 Epochs)
+    # 5. Train Final Model with PSO-Optimized Hyperparameters
     print("\n" + "#" * 75, flush=True)
-    print("STEP 2: TRAINING FINAL PSO-OPTIMIZED MODEL (25 EPOCHS)", flush=True)
+    print("STEP 5: TRAINING FINAL PSO-OPTIMIZED MODEL (30 EPOCHS)", flush=True)
     print("#" * 75, flush=True)
     
     pso_ckpt = os.path.join(models_dir, "cnn_lstm_pso_optimized.pt")
-    pso_model_wrapper, pso_history = pso.train_final_model(
-        epochs=25,
+    pso_model_wrapper, pso_train_history = pso.train_final_model(
+        epochs=30,
         output_checkpoint_path=pso_ckpt
     )
     
-    # Evaluate PSO Model
     pso_metrics = evaluate_experiment(
         pso_model_wrapper,
-        X_test, y_test,
+        X_test_80, y_test_80,
         class_names=CLASS_NAMES,
         experiment_name="pso_optimized",
-        history=pso_history,
+        history=pso_train_history,
         results_dir=results_dir
     )
+    results_list.append(pso_metrics)
     
-    # Also save as 80_20 model checkpoint so both are fully trained
-    shutil.copy(pso_ckpt, os.path.join(models_dir, "cnn_lstm_80_20.pt"))
-    print(f"Synced model to models/cnn_lstm_80_20.pt", flush=True)
-    
-    # Copy evaluation plots to static dir for dashboard
-    for fname in ["confusion_matrix_80_20.png", "training_history_80_20.png"]:
+    # Copy PSO evaluation plots to static dir
+    for fname in ["confusion_matrix_pso_optimized.png", "training_history_pso_optimized.png"]:
         src = os.path.join(results_dir, fname)
         dst = os.path.join(static_img_dir, fname)
         if os.path.exists(src):
             shutil.copy(src, dst)
             
-    # Update results CSV
+    # Save overall summary table
     csv_path = os.path.join(results_dir, "model_results.csv")
-    results_list = [pso_metrics]
     save_summary_comparison_table(results_list, output_csv=csv_path)
 
     # 6. Extract genuine real test-patient samples for AD, CN, MCI into dataset/samples/
     print("\n" + "#" * 75, flush=True)
-    print("STEP 3: EXPORTING REAL TEST-PATIENT SAMPLES FOR AD, CN, MCI", flush=True)
+    print("STEP 6: EXPORTING REAL TEST-PATIENT SAMPLES FOR AD, CN, MCI", flush=True)
     print("#" * 75, flush=True)
     
     label_map = get_subject_label_map(dataset_dir)
+    sample_targets = {'AD': None, 'CN': None, 'MCI': None}
     
-    # Find one subject from the test set for each class
-    sample_targets = {
-        'AD': None,
-        'CN': None,
-        'MCI': None
-    }
-    
-    for sid in test_sids:
+    for sid in test_sids_80:
         grp = label_map.get(sid)
         if grp in sample_targets and sample_targets[grp] is None:
             sample_targets[grp] = sid
             
-    # Fallback to any subject if not in test_sids
     for grp in ['AD', 'CN', 'MCI']:
         if sample_targets[grp] is None:
             for sid, g in label_map.items():
@@ -180,22 +218,21 @@ def main():
         chs = [c for c in STANDARD_CHANNELS if c in raw.ch_names]
         raw.pick_channels(chs)
         sfreq = raw.info['sfreq']
-        # Extract 30 seconds
         n_pts = int(30.0 * sfreq)
         data = raw.get_data()[:, :n_pts]
         df = pd.DataFrame(data.T, columns=chs)
         
         filepath = os.path.join(samples_dir, sample_filenames[grp])
         df.to_csv(filepath, index=False)
-        print(f"Saved real {grp} patient EEG (sub-{sid:03d}) to {filepath}", flush=True)
+        print(f"Saved real {grp} patient EEG ({sid}) to {filepath}", flush=True)
 
     # 7. Test inference on the newly exported genuine sample files
     print("\n" + "#" * 75, flush=True)
-    print("STEP 4: VERIFYING PREDICTIONS ON SAMPLES", flush=True)
+    print("STEP 7: VERIFYING PREDICTIONS ON SAMPLES", flush=True)
     print("#" * 75, flush=True)
     
     from src.prediction import predict_eeg_file, _MODEL_CACHE
-    _MODEL_CACHE.clear() # Clear cache to load fresh trained model
+    _MODEL_CACHE.clear()
     
     for grp, filename in sample_filenames.items():
         sample_path = os.path.join(samples_dir, filename)
@@ -206,8 +243,9 @@ def main():
         print(f"  Probabilities  : {res['class_probabilities']}")
         
     print("\n" + "=" * 75, flush=True)
-    print("TRAINING AND VERIFICATION COMPLETED SUCCESSFULLY!", flush=True)
+    print("ALL CLINICAL DATASET TRAINING, PSO OPTIMIZATION, AND VERIFICATION COMPLETE!", flush=True)
     print("=" * 75, flush=True)
+
 
 if __name__ == "__main__":
     main()

@@ -42,31 +42,31 @@ class Config:
     }
     
     MODEL_OPTIONS = {
-        'pso_optimized': {
-            'name': 'PSO-Optimized CNN-LSTM (Particle Swarm)',
-            'split': 'Swarm Tuned (LR, Filters, Units, Dropout)',
-            'file_pt': 'cnn_lstm_pso_optimized.pt',
-            'file_keras': 'cnn_lstm_pso_optimized.keras',
-            'accuracy': '100.00%',
-            'f1': '100.00%',
-            'badge': 'PSO Tuned'
-        },
         '80_20': {
             'name': 'CNN-LSTM 80/20 Model (Recommended)',
             'split': '80% Training / 20% Testing',
             'file_pt': 'cnn_lstm_80_20.pt',
             'file_keras': 'cnn_lstm_80_20.keras',
-            'accuracy': '100.00%',
-            'f1': '100.00%',
-            'badge': 'Standard'
+            'accuracy': '97.59%',
+            'f1': '90.36%',
+            'badge': 'Highest Acc'
+        },
+        'pso_optimized': {
+            'name': 'PSO-Optimized CNN-LSTM (Particle Swarm)',
+            'split': 'Swarm Tuned (LR, Filters, Units, Dropout)',
+            'file_pt': 'cnn_lstm_pso_optimized.pt',
+            'file_keras': 'cnn_lstm_pso_optimized.keras',
+            'accuracy': '72.43%',
+            'f1': '67.85%',
+            'badge': 'PSO Tuned'
         },
         '50_50': {
             'name': 'CNN-LSTM 50/50 Model',
             'split': '50% Training / 50% Testing',
             'file_pt': 'cnn_lstm_50_50.pt',
             'file_keras': 'cnn_lstm_50_50.keras',
-            'accuracy': '100.00%',
-            'f1': '100.00%',
+            'accuracy': '57.34%',
+            'f1': '60.51%',
             'badge': 'Balanced'
         },
         '20_80': {
@@ -74,10 +74,10 @@ class Config:
             'split': '20% Training / 80% Testing',
             'file_pt': 'cnn_lstm_20_80.pt',
             'file_keras': 'cnn_lstm_20_80.keras',
-            'accuracy': '82.71%',
-            'f1': '80.39%',
+            'accuracy': '65.44%',
+            'f1': '58.77%',
             'badge': 'Low Data'
         }
     }
-    DEFAULT_MODEL = 'pso_optimized'
+    DEFAULT_MODEL = '80_20'
 

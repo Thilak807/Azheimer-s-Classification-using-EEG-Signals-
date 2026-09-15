@@ -18,7 +18,7 @@ from sklearn.metrics import (
     classification_report
 )
 
-CLASS_NAMES = ['AD', 'HC', 'FTD']
+CLASS_NAMES = ['AD', 'CN', 'MCI']
 
 
 def evaluate_experiment(model, X_test, y_test,
