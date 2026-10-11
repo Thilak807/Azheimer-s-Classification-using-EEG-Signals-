@@ -33,7 +33,7 @@ from src.train import train_experiment
 from src.evaluation import evaluate_experiment, save_summary_comparison_table
 
 
-def main(data_dir=None, epochs=40, batch_size=32, lr=0.001, target_samples=1000):
+def main(data_dir=None, epochs=40, batch_size=32, lr=0.001, target_samples=1000, run_pso=False):
     print("=" * 75)
     print("ALZHEIMER'S DISEASE DETECTION USING EEG SIGNALS VIA HYBRID CNN-LSTM")
     print("=" * 75)
@@ -191,4 +191,3 @@ if __name__ == "__main__":
         target_samples=args.target_samples,
         run_pso=args.run_pso
     )
-

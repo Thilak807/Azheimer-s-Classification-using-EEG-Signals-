@@ -47,9 +47,9 @@ class Config:
             'split': '80% Training / 20% Testing',
             'file_pt': 'cnn_lstm_80_20.pt',
             'file_keras': 'cnn_lstm_80_20.keras',
-            'accuracy': '97.59%',
-            'f1': '90.36%',
-            'badge': 'Highest Acc'
+            'accuracy': '40.36%',
+            'f1': '45.56%',
+            'badge': 'Current Benchmark'
         },
         'pso_optimized': {
             'name': 'PSO-Optimized CNN-LSTM (Particle Swarm)',
@@ -58,7 +58,7 @@ class Config:
             'file_keras': 'cnn_lstm_pso_optimized.keras',
             'accuracy': '72.43%',
             'f1': '67.85%',
-            'badge': 'PSO Tuned'
+            'badge': 'Current Benchmark'
         },
         '50_50': {
             'name': 'CNN-LSTM 50/50 Model',
@@ -67,7 +67,7 @@ class Config:
             'file_keras': 'cnn_lstm_50_50.keras',
             'accuracy': '57.34%',
             'f1': '60.51%',
-            'badge': 'Balanced'
+            'badge': 'Current Benchmark'
         },
         '20_80': {
             'name': 'CNN-LSTM 20/80 Model (Low Resource)',
@@ -76,8 +76,7 @@ class Config:
             'file_keras': 'cnn_lstm_20_80.keras',
             'accuracy': '65.44%',
             'f1': '58.77%',
-            'badge': 'Low Data'
+            'badge': 'Current Benchmark'
         }
     }
     DEFAULT_MODEL = '80_20'
-

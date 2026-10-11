@@ -140,7 +140,7 @@ def dashboard():
     pso_json_path = os.path.join(app.config['RESULTS_DIR'], 'pso_optimal_hyperparameters.json')
     
     results_table = []
-    best_metrics = {'Accuracy': '100.00', 'Precision': '100.00', 'Recall': '100.00', 'F1 Score': '100.00'}
+    best_metrics = {'Accuracy': 'N/A', 'Precision': 'N/A', 'Recall': 'N/A', 'F1 Score': 'N/A'}
     
     if os.path.exists(csv_path):
         df = pd.read_csv(csv_path)
@@ -149,10 +149,10 @@ def dashboard():
         if len(df) > 0:
             best_row = df.sort_values(by='F1 Score', ascending=False).iloc[0]
             best_metrics = {
-                'Accuracy': str(best_row.get('Accuracy', '100.00')),
-                'Precision': str(best_row.get('Precision', '100.00')),
-                'Recall': str(best_row.get('Recall', '100.00')),
-                'F1 Score': str(best_row.get('F1 Score', '100.00'))
+                'Accuracy': str(best_row.get('Accuracy', 'N/A')),
+                'Precision': str(best_row.get('Precision', 'N/A')),
+                'Recall': str(best_row.get('Recall', 'N/A')),
+                'F1 Score': str(best_row.get('F1 Score', 'N/A'))
             }
             
     pso_info = {

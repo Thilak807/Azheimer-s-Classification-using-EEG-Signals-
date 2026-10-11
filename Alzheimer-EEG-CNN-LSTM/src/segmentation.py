@@ -196,9 +196,12 @@ def create_subject_stratified_split(subject_records, test_size=0.5, random_state
         counts = {'AD': 0, 'CN': 0, 'MCI': 0}
         for rec in records:
             grp = rec['group']
-            # For MCI (minority class), use higher overlap (80%) and no restrictive cap to ensure balanced representation
-            rec_overlap = 0.80 if grp == 'MCI' else overlap
-            max_wins = None if grp == 'MCI' else (desired_per_sub * 2 if desired_per_sub else None)
+            # Keep the same number of windows per subject for every class. Increasing
+            # overlap and removing the cap for MCI makes the minority class dominate
+            # the loss and causes the reported accuracy to depend on window counts
+            # rather than subject-level performance.
+            rec_overlap = overlap
+            max_wins = desired_per_sub * 2 if desired_per_sub else None
             wins = slice_into_windows(
                 rec['data'], 
                 sfreq=sfreq, 

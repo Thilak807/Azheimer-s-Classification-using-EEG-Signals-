@@ -208,9 +208,9 @@ def main():
     print(f"Selected representative test subjects: {sample_targets}", flush=True)
     
     sample_filenames = {
-        'AD': 'sample_AD_Alzheimer_subject.csv',
-        'CN': 'sample_CN_Cognitively_Normal.csv',
-        'MCI': 'sample_MCI_Mild_Cognitive_Impairment.csv'
+        'AD': 'AD_Alzheimer_subject.csv',
+        'CN': 'CN_Cognitively_Normal.csv',
+        'MCI': 'MCI_Mild_Cognitive_Impairment.csv'
     }
     
     for grp, sid in sample_targets.items():

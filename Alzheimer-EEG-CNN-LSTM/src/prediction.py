@@ -322,11 +322,11 @@ def create_sample_eeg_files():
     os.makedirs(samples_dir, exist_ok=True)
     
     sample_configs = [
-        ('sample_AD_Alzheimer_subject.csv', 'AD', os.path.join(dataset_dir, 'AD', 'AD1', '1.mat')),
-        ('sample_CN_Cognitively_Normal.csv', 'CN', os.path.join(dataset_dir, 'CONTROL', '10057fir.mat')),
-        ('sample_MCI_Mild_Cognitive_Impairment.csv', 'MCI', os.path.join(dataset_dir, 'MCI', 'MCI5', '1.mat')),
-        ('sample_HC_Healthy_subject.csv', 'CN', os.path.join(dataset_dir, 'CONTROL', '10188fir.mat')),
-        ('sample_FTD_Dementia_subject.csv', 'MCI', os.path.join(dataset_dir, 'MCI', 'MCI6', '1.mat'))
+        ('AD_Alzheimer_subject.csv', 'AD', os.path.join(dataset_dir, 'AD', 'AD1', '1.mat')),
+        ('CN_Cognitively_Normal.csv', 'CN', os.path.join(dataset_dir, 'CONTROL', '10057fir.mat')),
+        ('MCI_Mild_Cognitive_Impairment.csv', 'MCI', os.path.join(dataset_dir, 'MCI', 'MCI5', '1.mat')),
+        ('HC_Healthy_subject.csv', 'CN', os.path.join(dataset_dir, 'CONTROL', '10188fir.mat')),
+        ('FTD_Dementia_subject.csv', 'MCI', os.path.join(dataset_dir, 'MCI', 'MCI6', '1.mat'))
     ]
     
     duration = 30.0
@@ -360,4 +360,3 @@ def create_sample_eeg_files():
             print(f"Created sample EEG: {filepath}")
 
 create_sample_eeg_files()
-

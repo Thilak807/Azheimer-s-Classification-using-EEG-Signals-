@@ -73,9 +73,9 @@ Results from `results/model_results.csv` evaluated on untouched test subjects:
 
 | Train/Test Split | Training Subjects | Testing Subjects | Accuracy (%) | Macro Precision (%) | Macro Recall (%) | Macro F1-Score (%) |
 | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **80 / 20** | 70 subjects | 18 subjects | **100.00%** | **100.00%** | **100.00%** | **100.00%** |
-| **50 / 50** | 44 subjects | 44 subjects | **100.00%** | **100.00%** | **100.00%** | **100.00%** |
-| **20 / 80** | 17 subjects | 71 subjects | **82.71%** | **86.55%** | **82.21%** | **80.39%** |
+| **80 / 20** | 132 subjects | 34 subjects | **40.36%** | **64.64%** | **64.70%** | **45.56%** |
+| **50 / 50** | 83 subjects | 83 subjects | **57.34%** | **73.72%** | **73.55%** | **60.51%** |
+| **20 / 80** | 33 subjects | 133 subjects | **65.44%** | **58.98%** | **61.62%** | **58.77%** |
 
 ---
 
@@ -94,9 +94,9 @@ Alzheimer-EEG-CNN-LSTM/
 │   ├── participants.tsv                     # Subject clinical metadata
 │   ├── derivatives/                         # 19-channel EEG recordings
 │   └── samples/                             # 1-Click sample EEG files for web demo
-│       ├── sample_AD_Alzheimer_subject.csv
-│       ├── sample_HC_Healthy_subject.csv
-│       └── sample_FTD_Dementia_subject.csv
+│       ├── AD_Alzheimer_subject.csv
+│       ├── HC_Healthy_subject.csv
+│       └── FTD_Dementia_subject.csv
 │
 ├── models/                                  # Saved model checkpoints
 │   ├── cnn_lstm_50_50.pt (or .keras)
